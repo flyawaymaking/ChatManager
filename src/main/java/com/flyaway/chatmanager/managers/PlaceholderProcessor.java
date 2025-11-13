@@ -26,7 +26,7 @@ public class PlaceholderProcessor {
     private final ChatManagerPlugin plugin;
     private final ConfigManager configManager;
     private final boolean hasPapi;
-    private final Map<UUID, Inventory> tempInventories = new HashMap<>();
+    private final Map<UUID, Map<ClickType, TimedInventory>> tempInventories = new HashMap<>();
 
     public PlaceholderProcessor(ChatManagerPlugin plugin) {
         this.plugin = plugin;
@@ -146,7 +146,8 @@ public class PlaceholderProcessor {
         // Создаём заранее GUI для инвентарей
         if (sender instanceof Player player && (type == ClickType.SHOW_INV || type == ClickType.SHOW_ENDER || type == ClickType.SHOW_ITEM)) {
             Inventory inv = createInventoryForPlayer(player, type, inventoryTitle);
-            tempInventories.put(player.getUniqueId(), inv);
+            TimedInventory timedInv = new TimedInventory(inv);
+            tempInventories.computeIfAbsent(player.getUniqueId(), k -> new HashMap<>()).put(type, timedInv);
 
             // Кликабельный компонент просто вызовет команду открытия GUI
             String cmd = "/chatmanager openinv " + player.getUniqueId() + " " + type.name().toLowerCase();
@@ -283,24 +284,19 @@ public class PlaceholderProcessor {
      * @param type       Тип GUI (SHOW_INV, SHOW_ENDER, SHOW_ITEM)
      */
     public void openInventoryGUI(Player viewer, UUID targetUUID, ClickType type) {
-        Inventory inv = tempInventories.get(targetUUID);
-        if (inv == null) {
-            // Если по какой-то причине инвентарь ещё не создан — создаём на месте
-            Player target = Bukkit.getPlayer(targetUUID);
-            if (target == null) return;
-
-            String defaultTitle = switch (type) {
-                case SHOW_ITEM -> "Предмет " + target.getName();
-                case SHOW_INV -> "Инвентарь " + target.getName();
-                case SHOW_ENDER -> "Эндер сундук " + target.getName();
-                default -> "Инвентарь " + target.getName();
-            };
-
-            inv = createInventoryForPlayer(target, type, defaultTitle);
-            tempInventories.put(targetUUID, inv);
+        Map<ClickType, TimedInventory> invMap = tempInventories.get(targetUUID);
+        if (invMap == null) {
+            viewer.sendMessage(MessageManager.formatMessage("<red>Этот просмотр инвентаря истёк."));
+            return;
         }
 
-        viewer.openInventory(inv);
+        TimedInventory timedInv = invMap.get(type);
+        if (timedInv == null) {
+            viewer.sendMessage(MessageManager.formatMessage("<red>Этот просмотр инвентаря истёк."));
+            return;
+        }
+
+        viewer.openInventory(timedInv.getInventory());
     }
 
     public enum ClickType {
@@ -311,5 +307,34 @@ public class PlaceholderProcessor {
         SHOW_INV,
         SHOW_ENDER,
         SHOW_ITEM
+    }
+
+    private static class TimedInventory {
+        private final Inventory inventory;
+        private final long timestamp;
+
+        public TimedInventory(Inventory inventory) {
+            this.inventory = inventory;
+            this.timestamp = System.currentTimeMillis();
+        }
+
+        public Inventory getInventory() {
+            return inventory;
+        }
+
+        public long getTimestamp() {
+            return timestamp;
+        }
+    }
+
+    public void cleanupExpiredInventories() {
+        long now = System.currentTimeMillis();
+        long expiryMillis = 2 * 60 * 1000; // 2 минуты
+
+        tempInventories.forEach((uuid, invMap) -> {
+            invMap.entrySet().removeIf(entry -> now - entry.getValue().getTimestamp() > expiryMillis);
+        });
+
+        tempInventories.entrySet().removeIf(entry -> entry.getValue().isEmpty());
     }
 }

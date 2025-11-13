@@ -5,6 +5,7 @@ import com.flyaway.chatmanager.listeners.ChatListener;
 import com.flyaway.chatmanager.managers.*;
 import net.luckperms.api.event.EventSubscription;
 import net.luckperms.api.event.user.UserDataRecalculateEvent;
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Objects;
@@ -15,6 +16,9 @@ public class ChatManagerPlugin extends JavaPlugin {
     private ConfigManager configManager;
     private ChatMessageRenderer chatMessageRenderer;
     private PlaceholderProcessor placeholderProcessor;
+
+    // Ссылка на задачу очистки инвентарей
+    private int cleanupTaskId = -1;
 
     @Override
     public void onEnable() {
@@ -36,17 +40,30 @@ public class ChatManagerPlugin extends JavaPlugin {
         Objects.requireNonNull(getCommand("chatmanager")).setExecutor(chatCommand);
         Objects.requireNonNull(getCommand("chatmanager")).setTabCompleter(chatCommand);
 
+        // Запуск периодической задачи очистки устаревших инвентарей
+        cleanupTaskId = Bukkit.getScheduler().runTaskTimer(this, () -> {
+            getPlaceholderProcessor().cleanupExpiredInventories();
+        }, 1200L, 1200L).getTaskId();
+
         getLogger().info("ChatManager успешно запущен!");
     }
 
     @Override
     public void onDisable() {
+        // Отмена подписки LuckPerms
         if (chatMessageRenderer != null) {
             EventSubscription<UserDataRecalculateEvent> sub = chatMessageRenderer.getSubscription();
             if (sub != null) {
                 sub.close();
             }
         }
+
+        // Отмена задачи очистки инвентарей
+        if (cleanupTaskId != -1) {
+            Bukkit.getScheduler().cancelTask(cleanupTaskId);
+            cleanupTaskId = -1;
+        }
+
         getLogger().info("ChatManager отключен!");
     }
 

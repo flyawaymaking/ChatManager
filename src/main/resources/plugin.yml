@@ -1,0 +1,47 @@
+name: ChatManager
+version: 1.0.0
+main: com.flyaway.chatmanager.ChatManagerPlugin
+api-version: "1.21"
+author: FlyAwayMaking
+website: https://github.com/flyawaymaking
+depend: [LuckPerms]
+description: Система управления сообщений чата
+
+commands:
+  chatmanager:
+    description: Основная команда ChatManager
+    usage: /<command> [reload|help|info]
+    aliases: [cm, chatm]
+
+permissions:
+  chatmanager.color.*:
+    description: Права на доступ ко всем цветам ChatManager
+    children:
+      chatmanager.color.basic: true
+      chatmanager.color.advanced: true
+  chatmanager.format.*:
+    description: Права на доступ ко всем форматам ChatManager
+    children:
+      chatmanager.format.italic: true
+      chatmanager.format.bold: true
+  chatmanager.*:
+    description: Все права ChatManager
+    children:
+      chatmanager.color.*: true
+      chatmanager.format.*: true
+      chatmanager.reload: true
+  chatmanager.color.basic:
+    description: Использование базовых цветов
+    default: op
+  chatmanager.color.advanced:
+    description: Использование продвинутых цветов
+    default: op
+  chatmanager.format.italic:
+    description: Использование курсива
+    default: op
+  chatmanager.format.bold:
+    description: Использование жирного текста
+    default: op
+  chatmanager.reload:
+    description: Перезагрузите конфигурацию плагина
+    default: op

@@ -1,0 +1,12 @@
+# Радиус локального чата (в блоках)
+local-chat-radius: 100
+
+# Формат сообщения
+message-format: "{prefix}{username-color}{displayname}{suffix}<dark_gray> »<reset> {message}"
+
+# Настройки форматов
+formats:
+  # Формат для локального чата
+  local: "<yellow>Ⓛ</yellow> {message}"
+  # Формат для глобального чата
+  global: "<green>Ⓖ</green> {message}"

@@ -2,6 +2,7 @@ package com.flyaway.chatmanager;
 
 import com.flyaway.chatmanager.commands.ChatCommand;
 import com.flyaway.chatmanager.listeners.ChatListener;
+import com.flyaway.chatmanager.listeners.ChatTabCompleteListener;
 import com.flyaway.chatmanager.managers.*;
 import net.luckperms.api.event.EventSubscription;
 import net.luckperms.api.event.user.UserDataRecalculateEvent;
@@ -39,6 +40,7 @@ public class ChatManagerPlugin extends JavaPlugin {
         ChatCommand chatCommand = new ChatCommand(this);
         Objects.requireNonNull(getCommand("chatmanager")).setExecutor(chatCommand);
         Objects.requireNonNull(getCommand("chatmanager")).setTabCompleter(chatCommand);
+        getServer().getPluginManager().registerEvents(new ChatTabCompleteListener(this), this);
 
         // Запуск периодической задачи очистки устаревших инвентарей
         cleanupTaskId = Bukkit.getScheduler().runTaskTimer(this, () -> {

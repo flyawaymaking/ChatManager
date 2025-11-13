@@ -3,11 +3,11 @@ package com.flyaway.chatmanager.managers;
 import com.flyaway.chatmanager.ChatManagerPlugin;
 import me.clip.placeholderapi.PlaceholderAPI;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.LuckPermsProvider;
-import net.luckperms.api.model.user.User;
+import net.luckperms.api.event.EventSubscription;
+import net.luckperms.api.event.user.UserDataRecalculateEvent;
 import net.luckperms.api.cacheddata.CachedMetaData;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.PluginManager;
@@ -16,32 +16,41 @@ import org.jetbrains.annotations.NotNull;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ChatMessageRenderer {
 
-    private final ChatManagerPlugin plugin;
     private final ConfigManager configManager;
-    private final MiniMessage miniMessage;
     private final boolean hasPapi;
     private final boolean hasLuckPerms;
+    private final PlaceholderProcessor placeholderProcessor;
+    private final Map<UUID, CachedMetaData> metaCache = new ConcurrentHashMap<>();
+    private EventSubscription<UserDataRecalculateEvent> subscription;
     private LuckPerms luckPerms;
 
     private final Map<String, String> legacyColors = new HashMap<>();
 
     public ChatMessageRenderer(ChatManagerPlugin plugin) {
-        this.plugin = plugin;
         this.configManager = plugin.getConfigManager();
-        this.miniMessage = MiniMessage.miniMessage();
+        this.placeholderProcessor = plugin.getPlaceholderProcessor();
 
         PluginManager pm = plugin.getServer().getPluginManager();
         this.hasPapi = pm.getPlugin("PlaceholderAPI") != null;
         this.hasLuckPerms = pm.getPlugin("LuckPerms") != null;
 
         if (hasLuckPerms) {
-            this.luckPerms = LuckPermsProvider.get();
+            luckPerms = LuckPermsProvider.get();
+            subscription = luckPerms.getEventBus().subscribe(UserDataRecalculateEvent.class, event -> {
+                metaCache.put(event.getUser().getUniqueId(), event.getUser().getCachedData().getMetaData());
+            });
         }
 
-        // &-цвета и форматирование
+        // Инициализация legacy цветов (остается без изменений)
+        initializeLegacyColors();
+    }
+
+    private void initializeLegacyColors() {
         legacyColors.put("&0", "<black>");
         legacyColors.put("&1", "<dark_blue>");
         legacyColors.put("&2", "<dark_green>");
@@ -66,10 +75,15 @@ public class ChatMessageRenderer {
         legacyColors.put("&r", "<reset>");
     }
 
+    public EventSubscription<UserDataRecalculateEvent> getSubscription() {
+        return subscription;
+    }
+
     /**
      * Основной метод форматирования сообщений.
-     * @param player Игрок, который отправил сообщение
-     * @param message Текст сообщения (без '!')
+     *
+     * @param player   Игрок, который отправил сообщение
+     * @param message  Текст сообщения (без '!')
      * @param isGlobal true, если сообщение глобальное
      * @return Готовый Component для отправки
      */
@@ -87,8 +101,13 @@ public class ChatMessageRenderer {
         String suffix = "";
         String usernameColor = "";
         if (hasLuckPerms) {
-            User user = luckPerms.getPlayerAdapter(Player.class).getUser(player);
-            CachedMetaData meta = user.getCachedData().getMetaData();
+            CachedMetaData meta = metaCache.computeIfAbsent(
+                    player.getUniqueId(),
+                    id -> luckPerms.getPlayerAdapter(Player.class)
+                            .getUser(player)
+                            .getCachedData()
+                            .getMetaData()
+            );
             prefix = Objects.requireNonNullElse(meta.getPrefix(), "");
             suffix = Objects.requireNonNullElse(meta.getSuffix(), "");
             usernameColor = Objects.requireNonNullElse(meta.getMetaValue("username-color"), "");
@@ -112,13 +131,18 @@ public class ChatMessageRenderer {
         }
 
         // Десериализация в Component
-        return miniMessage.deserialize(format);
+        Component component = MessageManager.formatMessage(format);
+
+        // Обрабатываем все специальные заполнители и команды
+        component = placeholderProcessor.processAllPlaceholders(player, component);
+        return component;
     }
 
     /**
      * Обработка разрешений игрока для цвета и форматирования.
+     * (остается без изменений)
      */
-    private String applyColorPermissions(Player player, String message) {
+    public String applyColorPermissions(Player player, String message) {
         String result = message;
 
         // Игрок имеет полные права

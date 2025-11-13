@@ -3,15 +3,18 @@ package com.flyaway.chatmanager.commands;
 import com.flyaway.chatmanager.ChatManagerPlugin;
 import com.flyaway.chatmanager.managers.ConfigManager;
 import com.flyaway.chatmanager.managers.MessageManager;
+import com.flyaway.chatmanager.managers.PlaceholderProcessor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class ChatCommand implements CommandExecutor, TabCompleter {
 
@@ -45,6 +48,13 @@ public class ChatCommand implements CommandExecutor, TabCompleter {
                 break;
         }
 
+        if (!(sender instanceof Player player)) return true;
+        if (args.length != 2) return true;
+
+        UUID targetUUID = UUID.fromString(args[0]);
+        PlaceholderProcessor.ClickType type = PlaceholderProcessor.ClickType.valueOf(args[1].toUpperCase());
+
+        plugin.getPlaceholderProcessor().openInventoryGUI(player, targetUUID, type);
         return true;
     }
 

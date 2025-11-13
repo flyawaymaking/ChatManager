@@ -7,11 +7,18 @@ import net.kyori.adventure.text.TextReplacementConfig;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 public class PlaceholderProcessor {
@@ -19,6 +26,7 @@ public class PlaceholderProcessor {
     private final ChatManagerPlugin plugin;
     private final ConfigManager configManager;
     private final boolean hasPapi;
+    private final Map<UUID, Inventory> tempInventories = new HashMap<>();
 
     public PlaceholderProcessor(ChatManagerPlugin plugin) {
         this.plugin = plugin;
@@ -100,6 +108,7 @@ public class PlaceholderProcessor {
         String displayText = processPlaceholderText(config.getDisplayText(), sender, value);
         String hoverText = processPlaceholderText(config.getHoverText(), sender, value);
         String clickValue = processPlaceholderText(config.getClickValue(), sender, value);
+        String inventoryTitle = processPlaceholderText(config.getClickValue(), sender, value);
 
         // Создаем базовый компонент
         Component component = MessageManager.formatMessage(displayText);
@@ -112,7 +121,7 @@ public class PlaceholderProcessor {
         }
 
         // Добавляем click событие
-        ClickEvent clickEvent = createClickEvent(config.getClickAction(), clickValue, sender);
+        ClickEvent clickEvent = createClickEvent(config.getClickAction(), clickValue, sender, inventoryTitle);
         if (clickEvent != null) {
             component = component.clickEvent(clickEvent);
         }
@@ -123,7 +132,7 @@ public class PlaceholderProcessor {
     /**
      * Создает click event
      */
-    private ClickEvent createClickEvent(String action, String value, CommandSender sender) {
+    private ClickEvent createClickEvent(String action, String value, CommandSender sender, String inventoryTitle) {
         if (action == null || value == null) return null;
 
         ClickType type;
@@ -134,31 +143,86 @@ public class PlaceholderProcessor {
             return null;
         }
 
+        // Создаём заранее GUI для инвентарей
+        if (sender instanceof Player player && (type == ClickType.SHOW_INV || type == ClickType.SHOW_ENDER || type == ClickType.SHOW_ITEM)) {
+            Inventory inv = createInventoryForPlayer(player, type, inventoryTitle);
+            tempInventories.put(player.getUniqueId(), inv);
+
+            // Кликабельный компонент просто вызовет команду открытия GUI
+            String cmd = "/chatmanager openinv " + player.getUniqueId() + " " + type.name().toLowerCase();
+            return ClickEvent.runCommand(cmd);
+        }
+
         return switch (type) {
             case OPEN_URL -> ClickEvent.openUrl(value);
             case RUN_COMMAND -> ClickEvent.runCommand(value);
             case SUGGEST_COMMAND -> ClickEvent.suggestCommand(value);
             case COPY_TO_CLIPBOARD -> ClickEvent.copyToClipboard(value);
-            case SHOW_INV, SHOW_ENDER, SHOW_ITEM -> {
-                if (sender instanceof Player player) {
-                    String cmd = getInventoryCommand(type, player.getName());
-                    yield ClickEvent.runCommand(cmd);
-                }
-                yield null;
-            }
+            default -> null;
         };
     }
 
     /**
-     * Генерирует команду для просмотра инвентарей
+     * Создает GUI для игрока с дополнительными рядами
      */
-    private String getInventoryCommand(ClickType type, String name) {
-        return switch (type) {
-            case SHOW_INV -> "/inventory " + name;
-            case SHOW_ENDER -> "/enderchest " + name;
-            case SHOW_ITEM -> "/viewitem " + name;
-            default -> "";
-        };
+    private Inventory createInventoryForPlayer(Player player, ClickType type, String inventoryTitle) {
+        Inventory inv;
+        int size;
+        switch (type) {
+            case SHOW_ITEM -> size = 9;
+            case SHOW_ENDER -> size = 9 * 3;
+            case SHOW_INV -> size = 9 * 6;
+            default -> size = 9;
+        }
+
+        // Преобразуем название в Component через MessageManager
+        Component titleComponent = (inventoryTitle == null || inventoryTitle.isEmpty())
+                ? MessageManager.formatMessage("Инвентарь " + player.getName())
+                : MessageManager.formatMessage(inventoryTitle);
+
+        // Создаём инвентарь с Component заголовком (Paper 1.19+)
+        inv = Bukkit.createInventory(null, size, titleComponent);
+
+        switch (type) {
+            case SHOW_ITEM -> {
+                var item = player.getInventory().getItemInMainHand();
+                if (!item.getType().isAir()) inv.setItem(4, item.clone());
+            }
+            case SHOW_ENDER -> inv.setContents(player.getEnderChest().getContents());
+            case SHOW_INV -> {
+                // --- Ряд 1: броня + офф-рука ---
+                ItemStack[] armor = player.getEquipment().getArmorContents(); // boots, leggings, chestplate, helmet
+                if (armor.length == 4) {
+                    inv.setItem(0, armor[3]); // helmet
+                    inv.setItem(1, armor[2]); // chestplate
+                    inv.setItem(2, armor[1]); // leggings
+                    inv.setItem(3, armor[0]); // boots
+                }
+                inv.setItem(8, player.getInventory().getItemInOffHand()); // офф-рука
+
+                // --- Ряд 2: панели ---
+                ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+                ItemMeta meta = filler.getItemMeta();
+                if (meta != null) meta.displayName(MessageManager.formatMessage("<gray>"));
+                filler.setItemMeta(meta);
+                for (int i = 9; i < 18; i++) inv.setItem(i, filler);
+
+                // --- Ряды 3-6: основной инвентарь + хотбар ---
+                int targetSlot = 18;
+                for (int i = 9; i < 36; i++) { // основной инвентарь
+                    ItemStack item = player.getInventory().getItem(i);
+                    if (item != null) inv.setItem(targetSlot, item.clone());
+                    targetSlot++;
+                }
+                for (int i = 0; i < 9; i++) { // хотбар
+                    ItemStack item = player.getInventory().getItem(i);
+                    if (item != null) inv.setItem(targetSlot, item.clone());
+                    targetSlot++;
+                }
+            }
+        }
+
+        return inv;
     }
 
     /**
@@ -209,6 +273,34 @@ public class PlaceholderProcessor {
         return materialName.toLowerCase()
                 .replace('_', ' ')
                 .replace("minecraft:", "");
+    }
+
+    /**
+     * Открывает GUI для просмотра инвентаря/руки/эндер сундука игрока.
+     *
+     * @param viewer     Игрок, который будет видеть GUI
+     * @param targetUUID UUID игрока, чей инвентарь показываем
+     * @param type       Тип GUI (SHOW_INV, SHOW_ENDER, SHOW_ITEM)
+     */
+    public void openInventoryGUI(Player viewer, UUID targetUUID, ClickType type) {
+        Inventory inv = tempInventories.get(targetUUID);
+        if (inv == null) {
+            // Если по какой-то причине инвентарь ещё не создан — создаём на месте
+            Player target = Bukkit.getPlayer(targetUUID);
+            if (target == null) return;
+
+            String defaultTitle = switch (type) {
+                case SHOW_ITEM -> "Предмет " + target.getName();
+                case SHOW_INV -> "Инвентарь " + target.getName();
+                case SHOW_ENDER -> "Эндер сундук " + target.getName();
+                default -> "Инвентарь " + target.getName();
+            };
+
+            inv = createInventoryForPlayer(target, type, defaultTitle);
+            tempInventories.put(targetUUID, inv);
+        }
+
+        viewer.openInventory(inv);
     }
 
     public enum ClickType {

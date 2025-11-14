@@ -1,10 +1,8 @@
 package com.flyaway.chatmanager.commands;
 
 import com.flyaway.chatmanager.ChatManagerPlugin;
-import com.flyaway.chatmanager.managers.ConfigManager;
-import com.flyaway.chatmanager.managers.MentionManager;
-import com.flyaway.chatmanager.managers.MessageManager;
-import com.flyaway.chatmanager.managers.PlaceholderProcessor;
+import com.flyaway.chatmanager.managers.*;
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -13,10 +11,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class ChatCommand implements CommandExecutor, TabCompleter {
 
@@ -24,12 +19,16 @@ public class ChatCommand implements CommandExecutor, TabCompleter {
     private final ConfigManager configManager;
     private final MessageManager messageManager;
     private final MentionManager mentionManager;
+    private final PlayerTracker playerTracker;
+    private final ChatMessageRenderer renderer;
 
     public ChatCommand(ChatManagerPlugin plugin) {
         this.plugin = plugin;
         this.configManager = plugin.getConfigManager();
         this.messageManager = plugin.getMessageManager();
         this.mentionManager = plugin.getMentionManager();
+        this.renderer = plugin.getChatMessageRenderer();
+        this.playerTracker = plugin.getPlayerTracker();
     }
 
     @Override
@@ -51,7 +50,15 @@ public class ChatCommand implements CommandExecutor, TabCompleter {
                 break;
             case "mentiontoggle":
                 mentionToggleCommand(sender);
-                return true;
+                break;
+            case "send":
+                if (args.length < 3) break;
+                sendCommand(sender, args);
+                break;
+            case "bc":
+                if (args.length < 2) break;
+                broadCastCommand(sender, args);
+                break;
             case "help":
                 sendHelp(sender);
                 break;
@@ -59,7 +66,7 @@ public class ChatCommand implements CommandExecutor, TabCompleter {
                 infoCommand(sender);
                 break;
             case "openinv":
-                if (args.length != 3) return true; // теперь ожидаем 3 аргумента: openinv, UUID, type
+                if (args.length != 3) break;
                 openInvCommand(sender, args);
                 break;
             default:
@@ -68,6 +75,31 @@ public class ChatCommand implements CommandExecutor, TabCompleter {
         }
 
         return true;
+    }
+
+    private void broadCastCommand(CommandSender sender, String[] args) {
+        String text = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
+        if (sender instanceof Player player) {
+            if (!(player.hasPermission("chatmanager.bc"))) return;
+            text = renderer.applyColorPermissions(player, text);
+            messageManager.broadcastMessage(renderer.renderMessage(player, "<gold>" + player.getName() + "» <white>" + text));
+        } else {
+            messageManager.broadcastMessage(renderer.renderMessage(sender, "<gold>» <white>" + text));
+        }
+    }
+
+    private void sendCommand(CommandSender sender, String[] args) {
+        String targetUsername = args[1];
+        String text = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
+        Player target = Bukkit.getPlayerExact(targetUsername);
+        if (target == null) return;
+        if (sender instanceof Player player) {
+            if (!(player.hasPermission("chatmanager.send"))) return;
+            text = renderer.applyColorPermissions(player, text);
+            messageManager.sendMessage(target, renderer.renderMessage(target, "<gold>" + player.getName() + "» <white>" + text));
+        } else {
+            messageManager.sendMessage(target, renderer.renderMessage(target, "<gold>» <white>" + text));
+        }
     }
 
     private void reloadCommand(CommandSender sender) {
@@ -170,20 +202,41 @@ public class ChatCommand implements CommandExecutor, TabCompleter {
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
         List<String> completions = new ArrayList<>();
 
+        // ---------- 1 аргумент: список команд ----------
         if (args.length == 1) {
-            completions.add("help");
             completions.add("placeholders");
-            completions.add("colors");
             completions.add("mentiontoggle");
-            completions.add("reload");
+            completions.add("colors");
+            completions.add("help");
             completions.add("info");
 
-            // Фильтруем по введенному тексту
-            return completions.stream()
-                    .filter(completion -> completion.startsWith(args[0].toLowerCase()))
-                    .toList();
+            if (sender.hasPermission("chatmanager.reload")) {
+                completions.add("reload");
+            }
+            if (sender.hasPermission("chatmanager.send")) {
+                completions.add("send");
+            }
+            if (sender.hasPermission("chatmanager.bc")) {
+                completions.add("bc");
+            }
+
+            String prefix = args[0].toLowerCase();
+            return completions.stream().filter(c -> c.startsWith(prefix)).toList();
         }
 
+        // ---------- send <player> ... ----------
+        if (args[0].equalsIgnoreCase("send")) {
+            if (!sender.hasPermission("chatmanager.send")) return Collections.emptyList();
+            if (args.length == 2) {
+                String prefix = args[1].toLowerCase();
+
+                return playerTracker.getPlayerNames().stream()
+                        .filter(name -> name.toLowerCase().startsWith(prefix))
+                        .sorted()
+                        .toList();
+            }
+            return Collections.emptyList();
+        }
         return completions;
     }
 }

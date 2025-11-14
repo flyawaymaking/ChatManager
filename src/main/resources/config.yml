@@ -148,7 +148,6 @@ messages:
     <gray>/chatmanager mentiontoggle</gray> - <white>Запретить/разрешить указывать вас в чате</white>
     <gray>/chatmanager colors</gray> - <white>Список цветов и форматов</white>
     <gray>/chatmanager help</gray> - <white>Показать это сообщение</white>
-    <gray>/chatmanager reload</gray> - <white>Перезагрузить конфигурацию</white>
     <gray>/chatmanager info</gray> - <white>Информация о плагине</white>
 
     <gray>Использование чата:</gray>

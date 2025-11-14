@@ -28,6 +28,7 @@ public class PlaceholderProcessor {
     private final MessageManager messageManager;
     private final PlayerTracker playerTracker;
     private final MentionManager mentionManager;
+    private final LanguageManager languageManager;
     private final boolean hasPapi;
     private final Map<UUID, Map<ClickType, TimedInventory>> tempInventories = new HashMap<>();
 
@@ -37,6 +38,7 @@ public class PlaceholderProcessor {
         this.messageManager = plugin.getMessageManager();
         this.playerTracker = plugin.getPlayerTracker();
         this.mentionManager = plugin.getMentionManager();
+        this.languageManager = plugin.getLanguageManager();
         this.hasPapi = plugin.getServer().getPluginManager().getPlugin("PlaceholderAPI") != null;
     }
 
@@ -400,12 +402,11 @@ public class PlaceholderProcessor {
             // Используем кастомное имя предмета
             displayName = meta.displayName();
         } else {
-            // Используем translation key предмета для автоматического перевода
-            displayName = Component.translatable(item.getType().translationKey());
+            // Используем переведённое имя предмета
+            displayName = languageManager.translate(Component.translatable(item.getType().translationKey()), locale);
         }
 
-        // Переводим через GlobalTranslator
-        return GlobalTranslator.render(displayName, locale);
+        return displayName;
     }
 
     private String formatItemName(String materialName) {
@@ -426,13 +427,13 @@ public class PlaceholderProcessor {
     public void openInventoryGUI(Player viewer, UUID targetUUID, ClickType type) {
         Map<ClickType, TimedInventory> invMap = tempInventories.get(targetUUID);
         if (invMap == null) {
-            viewer.sendMessage(messageManager.formatMessage("<red>Этот просмотр инвентаря истёк."));
+            messageManager.sendMessage(viewer, "<red>Этот просмотр инвентаря истёк.");
             return;
         }
 
         TimedInventory timedInv = invMap.get(type);
         if (timedInv == null) {
-            viewer.sendMessage(messageManager.formatMessage("<red>Этот просмотр инвентаря истёк."));
+            messageManager.sendMessage(viewer, "<red>Этот просмотр инвентаря истёк.");
             return;
         }
 

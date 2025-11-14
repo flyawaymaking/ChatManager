@@ -7,12 +7,10 @@ import com.flyaway.chatmanager.managers.ChatMessageRenderer;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
-import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
-import org.bukkit.event.server.ServerCommandEvent;
 
 public class ChatListener implements Listener {
 
@@ -37,7 +35,7 @@ public class ChatListener implements Listener {
         String messageText = isGlobal ? plainMessage.substring(1).trim() : plainMessage.trim();
 
         // Форматируем сообщение
-        Component formatted = renderer.renderPlayerMessage(player, messageText, isGlobal);
+        Component formatted = renderer.renderLocaleMessage(player, messageText, isGlobal);
 
         // Используем MessageManager для отправки
         if (isGlobal) {
@@ -70,66 +68,31 @@ public class ChatListener implements Listener {
         }
     }
 
-    @EventHandler
-    public void onServerCommand(ServerCommandEvent event) {
-        String commandLine = event.getCommand(); // полный ввод, например "msg Player текст"
-        String lower = commandLine.toLowerCase();
-
-        // Обработка серверных /msg, /m, /tell, /w
-        if (lower.startsWith("msg ") || lower.startsWith("m ") ||
-                lower.startsWith("tell ") || lower.startsWith("w ")) {
-
-            event.setCancelled(true); // отменяем стандартное выполнение
-            String[] parts = commandLine.split(" ", 3);
-            if (parts.length < 3) return;
-
-            handleMessageCommand(event.getSender(), parts[1], parts[2], parts[0]);
-        }
-
-        // Обработка серверной команды /bc
-        else if (lower.startsWith("bc ")) {
-            event.setCancelled(true);
-            handleBroadcast(event.getSender(), commandLine.substring(3).trim());
-        }
-    }
-
-    private void handleMessageCommand(CommandSender sender, String targetName, String text, String commandUsed) {
+    private void handleMessageCommand(Player sender, String targetName, String text, String commandUsed) {
         Player target = Bukkit.getPlayerExact(targetName);
         if (target == null) {
-            sender.sendMessage(messageManager.formatMessage(configManager.getMessage("player-not-found")));
+            messageManager.sendMessage(sender, configManager.getMessage("player-not-found"));
             return;
         }
 
-        if (sender instanceof Player player) {
-            text = renderer.applyColorPermissions(player, text);
-        }
+        Component formattedText = renderer.renderMessage(sender, renderer.applyColorPermissions(sender, text));
 
-        Component formattedText = renderer.renderMessage(sender, text);
+        // Формат сообщения для получателя
+        String messageForSender = configManager.getMessage("to-player").replace("<reset>", "").replace("{target}", target.getName());
+        messageManager.sendMessage(sender, messageManager.formatMessage(messageForSender + "<reset> ").append(formattedText));
 
-        String senderName = sender.getName();
-        // Загружаем формат сообщения для отправителя из конфига
-        String messageForTarget = configManager.getMessage("from-player").replace("<reset>", "").replace("{sender}", senderName);;
+        // Формат сообщения для отправителя
+        String hoverText = configManager.getMessage("reply-hover-text");
+        String messageForTarget = configManager.getMessage("from-player").replace("<reset>", "").replace("{sender}", sender.getName());
+        messageForTarget = "<hover:show_text:'" + hoverText + "'>" +
+                "<click:suggest_command:'" + commandUsed + " " + target.getName() + " '>" +
+                messageForTarget + "</click></hover>";
 
-        if (sender instanceof Player) {
-            // Загружаем формат для получателя из конфига
-            String messageForSender = configManager.getMessage("to-player").replace("<reset>", "").replace("{target}", target.getName());
-            sender.sendMessage(messageManager.formatMessage(messageForSender + "<reset> ").append(formattedText));
-
-            // Заменяем {sender} в hover
-            String hoverText = configManager.getMessage("reply-hover-text");
-            messageForTarget = "<hover:show_text:'" + hoverText + "'>" +
-                    "<click:suggest_command:'" + commandUsed + " " + target.getName() + " '>" +
-                    messageForTarget + "</click></hover>";
-        }
-
-        target.sendMessage(messageManager.formatMessage(messageForTarget + "<reset> ").append(formattedText));
+        messageManager.sendMessage(sender, messageManager.formatMessage(messageForTarget + "<reset> ").append(formattedText));
     }
 
-    private void handleBroadcast(CommandSender sender, String text) {
-        if (sender instanceof Player player) {
-            text = renderer.applyColorPermissions(player, text);
-        }
-        Component formattedText = renderer.renderMessage(sender, text);
+    private void handleBroadcast(Player sender, String text) {
+        Component formattedText = renderer.renderMessage(sender, renderer.applyColorPermissions(sender, text));
         messageManager.broadcastMessage(formattedText);
     }
 }

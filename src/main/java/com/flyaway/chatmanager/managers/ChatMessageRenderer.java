@@ -83,7 +83,7 @@ public class ChatMessageRenderer {
     }
 
     /**
-     * Форматирование сообщений от команд.
+     * Форматирование сообщений без учёта локали
      * - заменяет legacy-цвета (&a) → <green>
      * - обрабатывает PlaceholderAPI (если есть)
      * - применяет кастомные плейсхолдеры (processAllPlaceholders)
@@ -95,21 +95,25 @@ public class ChatMessageRenderer {
         }
 
         if (hasPapi) {
-            result = PlaceholderAPI.setPlaceholders(null, result);
+            if (sender instanceof Player player) {
+                result = PlaceholderAPI.setPlaceholders(player, result);
+            } else {
+                result = PlaceholderAPI.setPlaceholders(null, result);
+            }
         }
 
         return placeholderProcessor.processAllPlaceholders(sender, messageManager.formatMessage(result));
     }
 
     /**
-     * Основной метод форматирования сообщений.
+     * Форматирование сообщений с учётом локали
      *
      * @param player   Игрок, который отправил сообщение
      * @param message  Текст сообщения (без '!')
      * @param isGlobal true, если сообщение глобальное
      * @return Готовый Component для отправки
      */
-    public @NotNull Component renderPlayerMessage(Player player, String message, boolean isGlobal) {
+    public @NotNull Component renderLocaleMessage(Player player, String message, boolean isGlobal) {
         String messageFormat = configManager.getMessageFormat();
         String scopeFormat = isGlobal
                 ? configManager.getGlobalFormat()

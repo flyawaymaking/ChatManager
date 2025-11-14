@@ -6,7 +6,6 @@ import com.flyaway.chatmanager.managers.*;
 import net.luckperms.api.event.EventSubscription;
 import net.luckperms.api.event.user.UserDataRecalculateEvent;
 import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Objects;
@@ -98,6 +97,10 @@ public class ChatManagerPlugin extends JavaPlugin {
 
     public MessageManager getMessageManager() {
         return messageManager;
+    }
+
+    public LanguageManager getLanguageManager() {
+        return languageManager;
     }
 
     public PlayerTracker getPlayerTracker() {

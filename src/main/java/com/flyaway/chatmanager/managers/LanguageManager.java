@@ -2,6 +2,8 @@ package com.flyaway.chatmanager.managers;
 
 import com.flyaway.chatmanager.ChatManagerPlugin;
 import net.kyori.adventure.key.Key;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.translation.GlobalTranslator;
 import net.kyori.adventure.translation.TranslationStore;
 
@@ -27,9 +29,6 @@ public class LanguageManager {
             // Загружаем переводы
             loadFromResourceBundle();
 
-            // Добавляем в GlobalTranslator
-            GlobalTranslator.translator().addSource(store);
-
             plugin.getLogger().info("Загружен русский перевод");
 
         } catch (Exception e) {
@@ -49,6 +48,10 @@ public class LanguageManager {
         } catch (Exception e) {
             plugin.getLogger().warning("Не удалось загрузить ResourceBundle: " + e.getMessage());
         }
+    }
+
+    public Component translate(TranslatableComponent key, Locale locale) {
+        return store.translate(key, locale);
     }
 
     public void unload() {

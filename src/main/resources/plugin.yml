@@ -1,5 +1,5 @@
 name: ChatManager
-version: 1.0.0
+version: 1.0.1
 main: com.flyaway.chatmanager.ChatManagerPlugin
 api-version: "1.21"
 author: FlyAwayMaking
@@ -10,7 +10,7 @@ description: Система управления сообщений чата
 commands:
   chatmanager:
     description: Основная команда ChatManager
-    usage: /<command> [reload|placeholders|colors|mentiontoggle|help|info]
+    usage: /<command> [reload|placeholders|colors|mentiontoggle|bc|send|help|info]
     aliases: [cm, chatm]
 
 permissions:
@@ -29,6 +29,8 @@ permissions:
     children:
       chatmanager.color.*: true
       chatmanager.format.*: true
+      chatmanager.bc: true
+      chatmanager.send: true
       chatmanager.local.listen: true
       chatmanager.reload: true
   chatmanager.color.basic:
@@ -48,4 +50,10 @@ permissions:
     default: op
   chatmanager.local.listen:
     description: Получать сообщения из локальных чатов
+    default: op
+  chatmanager.bc:
+    description: Отправка broadcast сообщений
+    default: op
+  chatmanager.send:
+    description: Отправка сообщения игрока
     default: op

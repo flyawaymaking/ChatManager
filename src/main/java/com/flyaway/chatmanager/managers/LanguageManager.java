@@ -4,9 +4,6 @@ import com.flyaway.chatmanager.ChatManagerPlugin;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.translation.GlobalTranslator;
 import net.kyori.adventure.translation.TranslationStore;
-import net.kyori.adventure.translation.TranslationStore.StringBased;
-
-import org.jetbrains.annotations.NotNull;
 
 import java.text.MessageFormat;
 import java.util.Locale;

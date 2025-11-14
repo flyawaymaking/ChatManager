@@ -4,6 +4,14 @@ local-chat-radius: 100
 # В течении какого времени активны ссылки на инвентари (в минутах)
 inv-expired-minutes: 3
 
+# Добавлять никам игроков hover с текстом.
+player-hover:
+  enabled: true
+
+# Информировать игроков об упоминании их в чате
+player-mention:
+  enabled: true
+
 # Формат сообщения
 message-format: "{prefix}{username-color}{displayname}{suffix}<dark_gray> »<reset> {message}"
 
@@ -13,41 +21,6 @@ formats:
   local: "<yellow>Ⓛ</yellow> {message}"
   # Формат для глобального чата
   global: "<green>Ⓖ</green> {message}"
-
-messages:
-  placeholders-header: "<gradient:gold:yellow>Доступные плейсхолдеры:</gradient>"
-  placeholder-line: "<gray>- <white>[{key}]</white> - <gray>{description}</gray>"
-  placeholders-empty: "<red>Нет доступных плейсхолдеров."
-  no-permission: "<red>У вас нет прав на использование этой команды."
-  reload-success: "<green>Конфигурация успешно перезагружена!"
-  reload-error: "<red>Ошибка при перезагрузке: {error}"
-  unknown-command: "<red>Неизвестная команда. Используйте <yellow>/chatmanager help</yellow> для списка команд."
-  bypass-prefix: "<gray>⟹ "
-  info: |
-    <gradient:gold:yellow>ChatManager v{version}</gradient>
-    <gray>Автор: <white>{authors}</white>
-    <gray>Версия API: <white>{api}</white>
-    <gray>Радиус локального чата: <white>{radius} блоков</white>
-    <gray>Формат сообщения: <white>{format}</white>
-  help: |
-    <gradient:gold:yellow>ChatManager - Помощь по командам</gradient>
-    <gray>/chatmanager placeholders</gray> - <white>Список доступных плейсхолдеров</white>
-    <gray>/chatmanager help</gray> - <white>Показать это сообщение</white>
-    <gray>/chatmanager reload</gray> - <white>Перезагрузить конфигурацию</white>
-    <gray>/chatmanager info</gray> - <white>Информация о плагине</white>
-
-    <gray>Использование чата:</gray>
-    <gray>- Обычное сообщение</gray> - <white>локальный чат</white>
-    <gray>- !сообщение</gray> - <white>глобальный чат</white>
-
-# Добавлять никам игроков hover с текстом.
-player-hover:
-  enabled: true
-  text: |
-    <green>Мир: <gray>%player_world%</gray>
-    <yellow>Биом: <gold>%player_biome_capitalized%</gold>
-    <red>Здоровье: %player_health_rounded%<gray>/%player_max_health_rounded%</gray>
-    <blue>Пинг: <gray>%player_ping%</gray> <blue>мс
 
 # Подставлять команды, отправленные через [/command]
 commands:
@@ -153,3 +126,48 @@ custom-placeholders:
     click-action: "OPEN_URL"
     click-value: "https://vk.com/flyawaymaking/"
     description: "Ссылка на официальную группу сервера ВКонтакте"
+
+messages:
+  placeholders-header: "<gradient:gold:yellow>Доступные плейсхолдеры:</gradient>"
+  placeholder-line: "<gray>- <white>[{key}]</white> - <gray>{description}</gray>"
+  placeholders-empty: "<red>Нет доступных плейсхолдеров."
+  no-permission: "<red>У вас нет прав на использование этой команды."
+  reload-success: "<green>Конфигурация успешно перезагружена!"
+  reload-error: "<red>Ошибка при перезагрузке: {error}"
+  unknown-command: "<red>Неизвестная команда. Используйте <yellow>/chatmanager help</yellow> для списка команд."
+  bypass-prefix: "<gray>⟹ "
+  info: |
+    <gradient:gold:yellow>ChatManager v{version}</gradient>
+    <gray>Автор: <white>{authors}</white>
+    <gray>Версия API: <white>{api}</white>
+    <gray>Радиус локального чата: <white>{radius} блоков</white>
+    <gray>Формат сообщения: <white>{format}</white>
+  help: |
+    <gradient:gold:yellow>ChatManager - Помощь по командам</gradient>
+    <gray>/chatmanager placeholders</gray> - <white>Список доступных плейсхолдеров</white>
+    <gray>/chatmanager mentiontoggle</gray> - <white>Запретить/разрешить указывать вас в чате</white>
+    <gray>/chatmanager colors</gray> - <white>Список цветов и форматов</white>
+    <gray>/chatmanager help</gray> - <white>Показать это сообщение</white>
+    <gray>/chatmanager reload</gray> - <white>Перезагрузить конфигурацию</white>
+    <gray>/chatmanager info</gray> - <white>Информация о плагине</white>
+
+    <gray>Использование чата:</gray>
+    <gray>- Обычное сообщение</gray> - <white>локальный чат</white>
+    <gray>- !сообщение</gray> - <white>глобальный чат</white>
+  player-hover-text: |
+    <green>Мир: <gray>%player_world%</gray>
+    <yellow>Биом: <gold>%player_biome_capitalized%</gold>
+    <red>Здоровье: %player_health_rounded%<gray>/%player_max_health_rounded%</gray>
+    <blue>Пинг: <gray>%player_ping%</gray> <blue>мс
+  player-mention-text: "<aqua>Уведомления об упоминаниях теперь {status}<aqua>.</aqua>"
+  player-mention-status-enabled: "<green>Включены"
+  player-mention-status-disabled: "<red>Выключены"
+  colors: |
+    <gradient:gold:yellow>Цвета и форматы:</gradient>
+    <white>Цвета: <dark_green>&a</dark_green>, <aqua>&b</aqua>, <red>&c</red>, <light_purple>&d</light_purple>, <yellow>&e</yellow>, <white>&f</white>, <dark_blue>&1</dark_blue>, <dark_green>&2</dark_green>, <dark_aqua>&3</dark_aqua>, <dark_red>&4</dark_red>, <dark_purple>&5</dark_purple>, <gold>&6</gold>, <gray>&7</gray>, <dark_gray>&8</dark_gray>, <blue>&9</blue>
+    <white>&l = <bold>Жирный</bold></white>
+    <white>&o = <italic>Курсив</italic></white>
+  player-not-found: "<red>Игрок не найден"
+  from-player: "<gold>[от <red>{sender}<gold>]"
+  to-player: "<gold>[<red>я <gold>-> <red>{target}<gold>]"
+  reply-hover-text: "<yellow>Нажмите чтобы ответить"

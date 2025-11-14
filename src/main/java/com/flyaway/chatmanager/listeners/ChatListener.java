@@ -96,7 +96,7 @@ public class ChatListener implements Listener {
     private void handleMessageCommand(CommandSender sender, String targetName, String text, String commandUsed) {
         Player target = Bukkit.getPlayerExact(targetName);
         if (target == null) {
-            sender.sendMessage(messageManager.formatMessage("<red>Игрок не найден"));
+            sender.sendMessage(messageManager.formatMessage(configManager.getMessage("player-not-found")));
             return;
         }
 
@@ -107,15 +107,22 @@ public class ChatListener implements Listener {
         Component formattedText = renderer.renderMessage(sender, text);
 
         String senderName = sender.getName();
-        String miniMessageString = "<gold>[от <red>" + senderName + "<gold>]<reset> ";
+        // Загружаем формат сообщения для отправителя из конфига
+        String messageForTarget = configManager.getMessage("from-player").replace("<reset>", "").replace("{sender}", senderName);;
+
         if (sender instanceof Player) {
-            sender.sendMessage(messageManager.formatMessage("<gold>[<red>я <gold>-> <red>" + target.getName() + "<gold>]<reset> ").append(formattedText));
-            miniMessageString = "<gold>[<hover:show_text:'<yellow>Нажмите чтобы ответить'>" +
-                    "<click:suggest_command:'" + commandUsed + " " + senderName + " '>" +
-                    "<gold>от <red>" + senderName + "</click></hover><gold>]<reset> ";
+            // Загружаем формат для получателя из конфига
+            String messageForSender = configManager.getMessage("to-player").replace("<reset>", "").replace("{target}", target.getName());
+            sender.sendMessage(messageManager.formatMessage(messageForSender + "<reset> ").append(formattedText));
+
+            // Заменяем {sender} в hover
+            String hoverText = configManager.getMessage("reply-hover-text");
+            messageForTarget = "<hover:show_text:'" + hoverText + "'>" +
+                    "<click:suggest_command:'" + commandUsed + " " + target.getName() + " '>" +
+                    messageForTarget + "</click></hover>";
         }
 
-        target.sendMessage(messageManager.formatMessage(miniMessageString).append(formattedText));
+        target.sendMessage(messageManager.formatMessage(messageForTarget + "<reset> ").append(formattedText));
     }
 
     private void handleBroadcast(CommandSender sender, String text) {

@@ -27,6 +27,7 @@ public class PlaceholderProcessor {
     private final ConfigManager configManager;
     private final MessageManager messageManager;
     private final PlayerTracker playerTracker;
+    private final MentionManager mentionManager;
     private final boolean hasPapi;
     private final Map<UUID, Map<ClickType, TimedInventory>> tempInventories = new HashMap<>();
 
@@ -35,6 +36,7 @@ public class PlaceholderProcessor {
         this.configManager = plugin.getConfigManager();
         this.messageManager = plugin.getMessageManager();
         this.playerTracker = plugin.getPlayerTracker();
+        this.mentionManager = plugin.getMentionManager();
         this.hasPapi = plugin.getServer().getPluginManager().getPlugin("PlaceholderAPI") != null;
     }
 
@@ -46,7 +48,8 @@ public class PlaceholderProcessor {
         String plainText = PlainTextComponentSerializer.plainText().serialize(component);
 
         component = processCommandPlaceholders(sender, component, plainText);
-        component = processPlayerHoverText(sender, component, plainText);
+        component = processPlayerMention(component, plainText);
+        component = processPlayerHover(component, plainText);
 
         for (Map.Entry<String, ConfigManager.PlaceholderConfig> entry : placeholders.entrySet()) {
             String placeholderKey = entry.getKey();
@@ -62,17 +65,41 @@ public class PlaceholderProcessor {
     }
 
     /**
-     * Обрабатывает ники игроков
+     * Уведомляет игроков об упоминании в чате
      */
-    private Component processPlayerHoverText(CommandSender sender, Component component, String plainText) {
-        String hoverText = configManager.getPlayerHoverText();
-        if (hoverText == null) return component;
+    private Component processPlayerMention(Component component, String plainText) {
+        if (!configManager.isPlayerMentionEnabled()) return component;
 
         for (String name : playerTracker.getPlayerNames()) {
+            String mentionName = "@" + name;
+            if (!plainText.contains(mentionName)) continue;
             Player player = Bukkit.getPlayerExact(name);
             if (player == null) continue;
 
-            Component hover = messageManager.formatMessage(processPlaceholderText(hoverText, sender, ""));
+            mentionManager.sendMentionMessage(player);
+
+            component = component.replaceText(b -> b
+                    .matchLiteral(mentionName)
+                    .replacement(messageManager.formatMessage("<aqua>" + mentionName + "</aqua>"))
+            );
+        }
+
+        return component;
+    }
+
+    /**
+     * Добавляет hover никам игроков
+     */
+    private Component processPlayerHover(Component component, String plainText) {
+        if (!configManager.isPlayerHoverEnabled()) return component;
+        String hoverText = configManager.getMessage("player-hover-text");
+
+        for (String name : playerTracker.getPlayerNames()) {
+            if (!plainText.contains(name)) continue;
+            Player player = Bukkit.getPlayerExact(name);
+            if (player == null) continue;
+
+            Component hover = messageManager.formatMessage(processPlaceholderText(hoverText, player, ""));
 
             component = component.replaceText(b -> b
                     .matchLiteral(name)

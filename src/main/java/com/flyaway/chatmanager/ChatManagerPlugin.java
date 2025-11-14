@@ -20,6 +20,7 @@ public class ChatManagerPlugin extends JavaPlugin {
     private LanguageManager languageManager;
     private MessageManager messageManager;
     private PlayerTracker playerTracker;
+    private MentionManager mentionManager;
 
     // Ссылка на задачу очистки инвентарей
     private int cleanupTaskId = -1;
@@ -32,17 +33,14 @@ public class ChatManagerPlugin extends JavaPlugin {
         this.configManager = new ConfigManager(this);
         // Загрузка конфигурации
         configManager.loadConfig();
+        this.languageManager = new LanguageManager(this);
+        languageManager.load();
         this.playerTracker = new PlayerTracker();
+        playerTracker.load();
+        this.messageManager = new MessageManager(this);
+        this.mentionManager = new MentionManager(this);
         this.placeholderProcessor = new PlaceholderProcessor(this);
         this.chatMessageRenderer = new ChatMessageRenderer(this);
-        this.languageManager = new LanguageManager(this);
-        this.messageManager = new MessageManager(this);
-
-        loadTranslations();
-
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            playerTracker.add(p);
-        }
 
         // Регистрация ивентов
         getServer().getPluginManager().registerEvents(new ChatListener(this), this);
@@ -60,10 +58,6 @@ public class ChatManagerPlugin extends JavaPlugin {
         }, 1200L, 1200L).getTaskId();
 
         getLogger().info("ChatManager успешно запущен!");
-    }
-
-    public void loadTranslations() {
-        languageManager.load();
     }
 
     @Override
@@ -108,5 +102,9 @@ public class ChatManagerPlugin extends JavaPlugin {
 
     public PlayerTracker getPlayerTracker() {
         return playerTracker;
+    }
+
+    public MentionManager getMentionManager() {
+        return mentionManager;
     }
 }

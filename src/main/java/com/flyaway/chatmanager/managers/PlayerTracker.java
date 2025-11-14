@@ -1,5 +1,6 @@
 package com.flyaway.chatmanager.managers;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.util.Collection;
@@ -12,6 +13,12 @@ import java.util.stream.Collectors;
 public class PlayerTracker {
 
     private final Map<UUID, Player> players = new ConcurrentHashMap<>();
+
+    public void load() {
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            add(p);
+        }
+    }
 
     public void add(Player player) {
         players.put(player.getUniqueId(), player);

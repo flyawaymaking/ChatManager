@@ -2,6 +2,7 @@ package com.flyaway.chatmanager.commands;
 
 import com.flyaway.chatmanager.ChatManagerPlugin;
 import com.flyaway.chatmanager.managers.ConfigManager;
+import com.flyaway.chatmanager.managers.MentionManager;
 import com.flyaway.chatmanager.managers.MessageManager;
 import com.flyaway.chatmanager.managers.PlaceholderProcessor;
 import org.bukkit.command.Command;
@@ -22,11 +23,13 @@ public class ChatCommand implements CommandExecutor, TabCompleter {
     private final ChatManagerPlugin plugin;
     private final ConfigManager configManager;
     private final MessageManager messageManager;
+    private final MentionManager mentionManager;
 
     public ChatCommand(ChatManagerPlugin plugin) {
         this.plugin = plugin;
         this.configManager = plugin.getConfigManager();
         this.messageManager = plugin.getMessageManager();
+        this.mentionManager = plugin.getMentionManager();
     }
 
     @Override
@@ -43,6 +46,12 @@ public class ChatCommand implements CommandExecutor, TabCompleter {
             case "placeholders":
                 placeholdersCommand(sender);
                 break;
+            case "colors":
+                colorsCommand(sender);
+                break;
+            case "mentiontoggle":
+                mentionToggleCommand(sender);
+                return true;
             case "help":
                 sendHelp(sender);
                 break;
@@ -50,17 +59,9 @@ public class ChatCommand implements CommandExecutor, TabCompleter {
                 infoCommand(sender);
                 break;
             case "openinv":
-                if (!(sender instanceof Player player)) return true;
                 if (args.length != 3) return true; // теперь ожидаем 3 аргумента: openinv, UUID, type
-
-                try {
-                    UUID targetUUID = UUID.fromString(args[1]); // args[1] — UUID
-                    PlaceholderProcessor.ClickType type = PlaceholderProcessor.ClickType.valueOf(args[2].toUpperCase());
-                    plugin.getPlaceholderProcessor().openInventoryGUI(player, targetUUID, type);
-                } catch (IllegalArgumentException e) {
-                    messageManager.sendUnknownCommand(sender);
-                }
-                return true;
+                openInvCommand(sender, args);
+                break;
             default:
                 messageManager.sendUnknownCommand(sender);
                 break;
@@ -82,6 +83,31 @@ public class ChatCommand implements CommandExecutor, TabCompleter {
             messageManager.sendReloadError(sender, e.getMessage());
             plugin.getLogger().severe("Ошибка при перезагрузке конфигурации: " + e.getMessage());
         }
+    }
+
+    private void colorsCommand(CommandSender sender) {
+        messageManager.sendMessage(sender, configManager.getMessage("colors"));
+    }
+
+    private void openInvCommand(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) return;
+
+        try {
+            UUID targetUUID = UUID.fromString(args[1]); // args[1] — UUID
+            PlaceholderProcessor.ClickType type = PlaceholderProcessor.ClickType.valueOf(args[2].toUpperCase());
+            plugin.getPlaceholderProcessor().openInventoryGUI(player, targetUUID, type);
+        } catch (IllegalArgumentException e) {
+            messageManager.sendUnknownCommand(sender);
+        }
+    }
+
+    private void mentionToggleCommand(CommandSender sender) {
+        if (!(sender instanceof Player player)) return;
+        boolean isEnabled = mentionManager.isMentionEnabled(player);
+        mentionManager.setMentionEnabled(player, !isEnabled);
+
+        String status = isEnabled ? configManager.getMessage("player-mention-status-enabled") : configManager.getMessage("player-mention-status-disabled");
+        messageManager.sendMessage(sender, configManager.getMessage("player-mention-text").replace("{status}", status));
     }
 
     private void placeholdersCommand(CommandSender sender) {
@@ -147,6 +173,8 @@ public class ChatCommand implements CommandExecutor, TabCompleter {
         if (args.length == 1) {
             completions.add("help");
             completions.add("placeholders");
+            completions.add("colors");
+            completions.add("mentiontoggle");
             completions.add("reload");
             completions.add("info");
 

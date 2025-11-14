@@ -10,7 +10,7 @@ description: Система управления сообщений чата
 commands:
   chatmanager:
     description: Основная команда ChatManager
-    usage: /<command> [reload|help|info]
+    usage: /<command> [reload|placeholders|colors|mentiontoggle|help|info]
     aliases: [cm, chatm]
 
 permissions:
@@ -29,6 +29,7 @@ permissions:
     children:
       chatmanager.color.*: true
       chatmanager.format.*: true
+      chatmanager.local.listen: true
       chatmanager.reload: true
   chatmanager.color.basic:
     description: Использование базовых цветов

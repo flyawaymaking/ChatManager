@@ -12,7 +12,6 @@ public class ConfigManager {
     private FileConfiguration config;
     private final Map<String, PlaceholderConfig> placeholderConfigs = new HashMap<>();
     private PlaceholderConfig commandConfig;
-    private String playerHoverText;
 
     public ConfigManager(ChatManagerPlugin plugin) {
         this.plugin = plugin;
@@ -23,7 +22,6 @@ public class ConfigManager {
         config = plugin.getConfig();
         loadPlaceholderConfigs();
         loadCommandConfig();
-        loadPlayerHoverText();
     }
 
     public void reloadConfig() {
@@ -32,7 +30,6 @@ public class ConfigManager {
         placeholderConfigs.clear();
         loadPlaceholderConfigs();
         loadCommandConfig();
-        loadPlayerHoverText();
     }
 
     private void loadCommandConfig() {
@@ -50,14 +47,6 @@ public class ConfigManager {
         }
     }
 
-    private void loadPlayerHoverText() {
-        if (!config.getBoolean("commands.enabled")) {
-            playerHoverText = null;
-        } else {
-            playerHoverText = config.getString("player-hover.text", "Не указан");
-        }
-    }
-
     private void loadPlaceholderConfigs() {
         if (!config.contains("custom-placeholders")) {
             return;
@@ -67,12 +56,12 @@ public class ConfigManager {
             String path = "custom-placeholders." + key;
 
             PlaceholderConfig placeholder = new PlaceholderConfig(
-                    config.getString(path + ".display-text", "Не указан"),
-                    config.getString(path + ".hover-text", "Не указан"),
+                    config.getString(path + ".display-text", "display-" + key),
+                    config.getString(path + ".hover-text", "hover-" + key),
                     config.getString(path + ".click-action"),
                     config.getString(path + ".click-value"),
-                    config.getString(path + ".inventory-title", "Не указан"),
-                    config.getString(path + "commands.description", "Нет описания")
+                    config.getString(path + ".inventory-title", "title-" + key),
+                    config.getString(path + ".description", "description-" + key)
             );
 
             placeholderConfigs.put(key.toLowerCase(), placeholder);
@@ -101,11 +90,24 @@ public class ConfigManager {
     }
 
     public String getMessage(String key) {
-        return config.getString("messages." + key, "<red> Не найдено сообщение " + key);
+        String message = config.getString("messages." + key, "<red>message." + key + " not-found");
+        return message.replaceAll("\\s+$", "");
     }
 
     public Map<String, PlaceholderConfig> getPlaceholderConfigs() {
         return placeholderConfigs;
+    }
+
+    public boolean isPlayerHoverEnabled() {
+        return config.getBoolean("player-hover.enabled", true);
+    }
+
+    public boolean isPlayerMentionEnabled() {
+        return config.getBoolean("player-mention.enabled", true);
+    }
+
+    public PlaceholderConfig getCommandConfig() {
+        return commandConfig;
     }
 
     public FileConfiguration getConfig() {
@@ -154,13 +156,5 @@ public class ConfigManager {
         public String getDescription() {
             return description;
         }
-    }
-
-    public String getPlayerHoverText() {
-        return playerHoverText;
-    }
-
-    public PlaceholderConfig getCommandConfig() {
-        return commandConfig;
     }
 }

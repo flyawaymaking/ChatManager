@@ -109,9 +109,9 @@ public class ChatListener implements Listener {
         String senderName = sender.getName();
         String miniMessageString = "<gold>[от <red>" + senderName + "<gold>]<reset> ";
         if (sender instanceof Player) {
-            sender.sendMessage(MessageManager.formatMessage("<gold>[<red>я <gold>-> <red>" + target.getName() + "<gold>] <reset>").append(formattedText));
+            sender.sendMessage(MessageManager.formatMessage("<gold>[<red>я <gold>-> <red>" + target.getName() + "<gold>]<reset> ").append(formattedText));
             miniMessageString = "<gold>[<hover:show_text:'<yellow>Нажмите чтобы ответить'>" +
-                    "<click:run_command:'" + commandUsed + " " + senderName + " '>" +
+                    "<click:suggest_command:'" + commandUsed + " " + senderName + " '>" +
                     "<gold>от <red>" + senderName + "</click></hover><gold>]<reset> ";
         }
 

@@ -44,14 +44,14 @@ custom-placeholders:
   # Показать баланс денег
   money:
     display-text: "<white>[<green>Монеты <white>%player_name%]<reset>"
-    hover-text: "<green>Монеты %player_name%: \$%coinsengine_balance_short_clean_money%"
+    hover-text: "<green>Монеты %player_name%: %coinsengine_balance_short_clean_money%"
     click-action: "SUGGEST_COMMAND"
     click-value: "/money pay %player_name% "
 
   # Показать баланс коинов
   coins:
     display-text: "<white>[<gold>Коины <white>%player_name%]<reset>"
-    hover-text: "<gold>Коины %player_name%: \$%coinsengine_balance_short_clean_money%"
+    hover-text: "<gold>Коины %player_name%: %coinsengine_balance_short_clean_coins%"
     click-action: "SUGGEST_COMMAND"
     click-value: "/coins pay %player_name% "
 
@@ -79,7 +79,7 @@ custom-placeholders:
 
   # Пинг игрока
   ping:
-    display-text: "<aqua>Мой пинг: <green>%player_colored_ping% <gray>мс<reset>"
+    display-text: "<aqua>Мой пинг: <green>%player_ping% <gray>мс<reset>"
 
   # Сайт сервера
   site:

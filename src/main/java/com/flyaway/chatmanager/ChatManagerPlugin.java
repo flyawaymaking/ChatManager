@@ -1,8 +1,7 @@
 package com.flyaway.chatmanager;
 
 import com.flyaway.chatmanager.commands.ChatCommand;
-import com.flyaway.chatmanager.listeners.ChatListener;
-import com.flyaway.chatmanager.listeners.ChatTabCompleteListener;
+import com.flyaway.chatmanager.listeners.*;
 import com.flyaway.chatmanager.managers.*;
 import net.luckperms.api.event.EventSubscription;
 import net.luckperms.api.event.user.UserDataRecalculateEvent;
@@ -17,6 +16,7 @@ public class ChatManagerPlugin extends JavaPlugin {
     private ConfigManager configManager;
     private ChatMessageRenderer chatMessageRenderer;
     private PlaceholderProcessor placeholderProcessor;
+    private LanguageManager languageManager;
 
     // Ссылка на задачу очистки инвентарей
     private int cleanupTaskId = -1;
@@ -27,14 +27,18 @@ public class ChatManagerPlugin extends JavaPlugin {
 
         // Инициализация менеджеров
         this.configManager = new ConfigManager(this);
-        this.chatMessageRenderer = new ChatMessageRenderer(this);
         this.placeholderProcessor = new PlaceholderProcessor(this);
+        this.chatMessageRenderer = new ChatMessageRenderer(this);
+        this.languageManager = new LanguageManager(this);
+
+        loadTranslations();
 
         // Загрузка конфигурации
         configManager.loadConfig();
 
         // Регистрация ивентов
         getServer().getPluginManager().registerEvents(new ChatListener(this), this);
+        getServer().getPluginManager().registerEvents(new InventoryProtectListener(this), this);
 
         // Регистрация команд
         ChatCommand chatCommand = new ChatCommand(this);
@@ -50,8 +54,13 @@ public class ChatManagerPlugin extends JavaPlugin {
         getLogger().info("ChatManager успешно запущен!");
     }
 
+    public void loadTranslations() {
+        languageManager.load();
+    }
+
     @Override
     public void onDisable() {
+        languageManager.unload();
         // Отмена подписки LuckPerms
         if (chatMessageRenderer != null) {
             EventSubscription<UserDataRecalculateEvent> sub = chatMessageRenderer.getSubscription();

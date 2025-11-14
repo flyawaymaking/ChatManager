@@ -7,18 +7,19 @@ import net.kyori.adventure.text.TextReplacementConfig;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import net.kyori.adventure.translation.GlobalTranslator;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.regex.Pattern;
 
 public class PlaceholderProcessor {
@@ -108,7 +109,7 @@ public class PlaceholderProcessor {
         String displayText = processPlaceholderText(config.getDisplayText(), sender, value);
         String hoverText = processPlaceholderText(config.getHoverText(), sender, value);
         String clickValue = processPlaceholderText(config.getClickValue(), sender, value);
-        String inventoryTitle = processPlaceholderText(config.getClickValue(), sender, value);
+        String inventoryTitle = processPlaceholderText(config.getInventoryTitle(), sender, value);
 
         // Создаем базовый компонент
         Component component = MessageManager.formatMessage(displayText);
@@ -182,40 +183,91 @@ public class PlaceholderProcessor {
                 : MessageManager.formatMessage(inventoryTitle);
 
         // Создаём инвентарь с Component заголовком (Paper 1.19+)
-        inv = Bukkit.createInventory(null, size, titleComponent);
+        inv = Bukkit.createInventory(new ViewOnlyHolder(), size, titleComponent);
 
         switch (type) {
             case SHOW_ITEM -> {
                 var item = player.getInventory().getItemInMainHand();
                 if (!item.getType().isAir()) inv.setItem(4, item.clone());
+
+                ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+                int[] firstRow = {0, 1, 2, 3, 5, 6, 7, 8};
+                for (int slot : firstRow) {
+                    if (inv.getItem(slot) == null || Objects.requireNonNull(inv.getItem(slot)).getType().isAir()) {
+                        inv.setItem(slot, filler);
+                    }
+                }
             }
             case SHOW_ENDER -> inv.setContents(player.getEnderChest().getContents());
             case SHOW_INV -> {
-                // --- Ряд 1: броня + офф-рука ---
-                ItemStack[] armor = player.getEquipment().getArmorContents(); // boots, leggings, chestplate, helmet
-                if (armor.length == 4) {
-                    inv.setItem(0, armor[3]); // helmet
-                    inv.setItem(1, armor[2]); // chestplate
-                    inv.setItem(2, armor[1]); // leggings
-                    inv.setItem(3, armor[0]); // boots
-                }
-                inv.setItem(8, player.getInventory().getItemInOffHand()); // офф-рука
 
-                // --- Ряд 2: панели ---
+                // === Подготовка заливки стеклом ===
                 ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
                 ItemMeta meta = filler.getItemMeta();
                 if (meta != null) meta.displayName(MessageManager.formatMessage("<gray>"));
                 filler.setItemMeta(meta);
+
+                // === Ряд 1: голова + опыт + броня + офф-рука ===
+                // Слоты: [0]=голова игрока, [1]=уровень,
+                //         [3]=шлем, [4]=нагрудник, [5]=поножи, [6]=ботинки,
+                //         [8]=офф-рука, остальные заполняются стеклом
+                // slot 0 — голова игрока
+                ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
+                SkullMeta skullMeta = (SkullMeta) skull.getItemMeta();
+                if (skullMeta != null) {
+                    skullMeta.setOwningPlayer(player);
+                    skullMeta.displayName(MessageManager.formatMessage("<yellow>" + player.getName()));
+                    skull.setItemMeta(skullMeta);
+                }
+                inv.setItem(0, skull);
+
+                // slot 1 — уровень опыта (как EXPERIENCE_BOTTLE)
+                ItemStack exp = new ItemStack(Material.EXPERIENCE_BOTTLE);
+                ItemMeta expMeta = exp.getItemMeta();
+                if (expMeta != null) {
+                    expMeta.displayName(MessageManager.formatMessage("<yellow>Уровень: " + player.getLevel()));
+                    exp.setItemMeta(expMeta);
+                }
+                inv.setItem(1, exp);
+
+                // 3–6: броня
+                ItemStack[] armor = player.getEquipment().getArmorContents(); // boots, leggings, chest, helmet
+                if (armor.length == 4) {
+                    inv.setItem(3, armor[3]); // helmet
+                    inv.setItem(4, armor[2]); // chestplate
+                    inv.setItem(5, armor[1]); // leggings
+                    inv.setItem(6, armor[0]); // boots
+                }
+
+                // slot 8 — офф-рука
+                ItemStack offhand = player.getInventory().getItemInOffHand();
+                if (!offhand.getType().isAir()) {
+                    inv.setItem(8, offhand.clone());
+                }
+
+                // Остальные ячейки первого ряда → стекло
+                int[] firstRow = {0, 1, 2, 3, 4, 5, 6, 7, 8};
+                for (int slot : firstRow) {
+                    if (inv.getItem(slot) == null || Objects.requireNonNull(inv.getItem(slot)).getType().isAir()) {
+                        inv.setItem(slot, filler);
+                    }
+                }
+
+                // === Ряд 2: стекло (как и раньше) ===
                 for (int i = 9; i < 18; i++) inv.setItem(i, filler);
 
-                // --- Ряды 3-6: основной инвентарь + хотбар ---
+                // === Ряды 3-6: основной инвентарь + хотбар ===
                 int targetSlot = 18;
-                for (int i = 9; i < 36; i++) { // основной инвентарь
+
+                // Основной инвентарь
+                for (int i = 9; i < 36; i++) {
                     ItemStack item = player.getInventory().getItem(i);
                     if (item != null) inv.setItem(targetSlot, item.clone());
                     targetSlot++;
                 }
-                for (int i = 0; i < 9; i++) { // хотбар
+
+                // Хотбар
+                for (int i = 0; i < 9; i++) {
                     ItemStack item = player.getInventory().getItem(i);
                     if (item != null) inv.setItem(targetSlot, item.clone());
                     targetSlot++;
@@ -262,18 +314,52 @@ public class PlaceholderProcessor {
             return "<gray>Пусто";
         }
 
-        var meta = item.getItemMeta();
-        if (meta != null && meta.hasDisplayName()) {
-            return PlainTextComponentSerializer.plainText().serialize(Objects.requireNonNull(meta.displayName()));
-        } else {
+        try {
+            // Получаем переведенное название
+            Component translatedName = getItemDisplayName(item, player.locale());
+
+            // Добавляем количество если больше 1
+            if (item.getAmount() > 1) {
+                translatedName = translatedName
+                        .append(Component.text(" × "))
+                        .append(Component.text(item.getAmount()));
+            }
+
+            return "<green>" + PlainTextComponentSerializer.plainText().serialize(translatedName);
+
+        } catch (Exception e) {
+            plugin.getLogger().warning("Ошибка при получении названия предмета: " + e.getMessage());
+            // Fallback на старый метод
             return "<green>" + formatItemName(item.getType().toString());
         }
+    }
+
+    private Component getItemDisplayName(ItemStack item, Locale locale) {
+        if (item == null || item.getType().isAir()) {
+            return Component.text("Пусто");
+        }
+
+        ItemMeta meta = item.getItemMeta();
+        Component displayName;
+
+        if (meta != null && meta.hasDisplayName()) {
+            // Используем кастомное имя предмета
+            displayName = meta.displayName();
+        } else {
+            // Используем translation key предмета для автоматического перевода
+            displayName = Component.translatable(item.getType().translationKey());
+        }
+
+        // Переводим через GlobalTranslator
+        return GlobalTranslator.render(displayName, locale);
     }
 
     private String formatItemName(String materialName) {
         return materialName.toLowerCase()
                 .replace('_', ' ')
-                .replace("minecraft:", "");
+                .replace("minecraft:", "")
+                .replace("block.", "")
+                .replace("item.", "");
     }
 
     /**
@@ -297,6 +383,18 @@ public class PlaceholderProcessor {
         }
 
         viewer.openInventory(timedInv.getInventory());
+    }
+
+    private class ViewOnlyHolder implements InventoryHolder {
+        @Override
+        public Inventory getInventory() {
+            return null; // не используется
+        }
+    }
+
+
+    public boolean isTempInventory(Inventory inv) {
+        return inv.getHolder() instanceof ViewOnlyHolder;
     }
 
     public enum ClickType {

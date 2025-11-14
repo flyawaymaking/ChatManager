@@ -43,18 +43,23 @@ public class ChatCommand implements CommandExecutor, TabCompleter {
             case "info":
                 infoCommand(sender);
                 break;
+            case "openinv":
+                if (!(sender instanceof Player player)) return true;
+                if (args.length != 3) return true; // теперь ожидаем 3 аргумента: openinv, UUID, type
+
+                try {
+                    UUID targetUUID = UUID.fromString(args[1]); // args[1] — UUID
+                    PlaceholderProcessor.ClickType type = PlaceholderProcessor.ClickType.valueOf(args[2].toUpperCase());
+                    plugin.getPlaceholderProcessor().openInventoryGUI(player, targetUUID, type);
+                } catch (IllegalArgumentException e) {
+                    MessageManager.sendUnknownCommand(sender);
+                }
+                return true;
             default:
                 MessageManager.sendUnknownCommand(sender);
                 break;
         }
 
-        if (!(sender instanceof Player player)) return true;
-        if (args.length != 2) return true;
-
-        UUID targetUUID = UUID.fromString(args[0]);
-        PlaceholderProcessor.ClickType type = PlaceholderProcessor.ClickType.valueOf(args[1].toUpperCase());
-
-        plugin.getPlaceholderProcessor().openInventoryGUI(player, targetUUID, type);
         return true;
     }
 

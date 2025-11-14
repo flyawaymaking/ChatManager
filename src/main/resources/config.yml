@@ -1,6 +1,9 @@
 # Радиус локального чата (в блоках)
 local-chat-radius: 100
 
+# В течении какого времени активны ссылки на инвентари (в минутах)
+inv-expired-minutes: 3
+
 # Формат сообщения
 message-format: "{prefix}{username-color}{displayname}{suffix}<dark_gray> »<reset> {message}"
 
@@ -11,12 +14,48 @@ formats:
   # Формат для глобального чата
   global: "<green>Ⓖ</green> {message}"
 
+messages:
+  placeholders-header: "<gradient:gold:yellow>Доступные плейсхолдеры:</gradient>"
+  placeholder-line: "<gray>- <white>[{key}]</white> - <gray>{description}</gray>"
+  placeholders-empty: "<red>Нет доступных плейсхолдеров."
+  no-permission: "<red>У вас нет прав на использование этой команды."
+  reload-success: "<green>Конфигурация успешно перезагружена!"
+  reload-error: "<red>Ошибка при перезагрузке: {error}"
+  unknown-command: "<red>Неизвестная команда. Используйте <yellow>/chatmanager help</yellow> для списка команд."
+  bypass-prefix: "<gray>⟹ "
+  info: |
+    <gradient:gold:yellow>ChatManager v{version}</gradient>
+    <gray>Автор: <white>{authors}</white>
+    <gray>Версия API: <white>{api}</white>
+    <gray>Радиус локального чата: <white>{radius} блоков</white>
+    <gray>Формат сообщения: <white>{format}</white>
+  help: |
+    <gradient:gold:yellow>ChatManager - Помощь по командам</gradient>
+    <gray>/chatmanager placeholders</gray> - <white>Список доступных плейсхолдеров</white>
+    <gray>/chatmanager help</gray> - <white>Показать это сообщение</white>
+    <gray>/chatmanager reload</gray> - <white>Перезагрузить конфигурацию</white>
+    <gray>/chatmanager info</gray> - <white>Информация о плагине</white>
+
+    <gray>Использование чата:</gray>
+    <gray>- Обычное сообщение</gray> - <white>локальный чат</white>
+    <gray>- !сообщение</gray> - <white>глобальный чат</white>
+
+# Добавлять никам игроков hover с текстом.
+player-hover:
+  enabled: true
+  text: |
+    <green>Мир: <gray>%player_world%</gray>
+    <yellow>Биом: <gold>%player_biome_capitalized%</gold>
+    <red>Здоровье: %player_health_rounded%<gray>/%player_max_health_rounded%</gray>
+    <blue>Пинг: <gray>%player_ping%</gray> <blue>мс
+
 # Подставлять команды, отправленные через [/command]
 commands:
   enabled: true
   display-text: "<aqua>[<yellow>{command}<aqua>]<reset>"
   hover-text: "<yellow>Нажмите, чтобы использовать команду!"
   click-action: "SUGGEST_COMMAND"
+  description: "Преобразует команды в квадратных скобках в кликабельные элементы"
 
 # Кастомные заполнители
 custom-placeholders:
@@ -26,6 +65,7 @@ custom-placeholders:
     inventory-title: "Инвентарь %player_name%"
     hover-text: "<yellow>Нажмите чтобы посмотреть!"
     click-action: "SHOW_INV"
+    description: "Показывает инвентарь игрока в интерактивном просмотре"
 
   # Показать эндер сундук
   ender:
@@ -33,6 +73,7 @@ custom-placeholders:
     inventory-title: "Эндер сундук %player_name%"
     hover-text: "<yellow>Нажмите чтобы посмотреть!"
     click-action: "SHOW_ENDER"
+    description: "Показывает эндер-сундук игрока в интерактивном просмотре"
 
   # Показать предмет из руки
   item:
@@ -40,6 +81,7 @@ custom-placeholders:
     inventory-title: "Предмет %player_name%"
     hover-text: "<yellow>Нажмите чтобы посмотреть!"
     click-action: "SHOW_ITEM"
+    description: "Показывает предмет в руке игрока с названием и метаданными"
 
   # Показать баланс денег
   money:
@@ -47,6 +89,7 @@ custom-placeholders:
     hover-text: "<green>Монеты %player_name%: %coinsengine_balance_short_clean_money%"
     click-action: "SUGGEST_COMMAND"
     click-value: "/money pay %player_name% "
+    description: "Отображает баланс монет игрока с возможностью быстрой оплаты"
 
   # Показать баланс коинов
   coins:
@@ -54,6 +97,7 @@ custom-placeholders:
     hover-text: "<gold>Коины %player_name%: %coinsengine_balance_short_clean_coins%"
     click-action: "SUGGEST_COMMAND"
     click-value: "/coins pay %player_name% "
+    description: "Отображает баланс коинов игрока с возможностью быстрой оплаты"
 
   # Предметы на аукционе игрока
   ah:
@@ -61,6 +105,7 @@ custom-placeholders:
     hover-text: "<yellow>Товары на аукционе %player_name%"
     click-action: "RUN_COMMAND"
     click-value: "/ah view %player_name%"
+    description: "Быстрый просмотр товаров игрока на аукционе"
 
   # Предложить обмен
   trade:
@@ -68,18 +113,22 @@ custom-placeholders:
     hover-text: "<yellow>Предложить обменяться вещами с %player_name%"
     click-action: "RUN_COMMAND"
     click-value: "/trade %player_name%"
+    description: "Быстрое предложение обмена предметами с игроком"
 
   # Игровое время
   gametime:
     display-text: "<aqua>Время в игре: %player_world_time_24%<reset>"
+    description: "Отображает текущее игровое время в 24-часовом формате"
 
   # Позиция игрока
   pos:
     display-text: "<aqua>Моя позиция: <white>%player_world% <yellow>X:<white>%player_x% <yellow>Y:<white>%player_y% <yellow>Z:<white>%player_z%<reset>"
+    description: "Показывает текущие координаты и мир игрока"
 
   # Пинг игрока
   ping:
     display-text: "<aqua>Мой пинг: <green>%player_ping% <gray>мс<reset>"
+    description: "Отображает текущий пинг игрока в миллисекундах"
 
   # Сайт сервера
   site:
@@ -87,6 +136,7 @@ custom-placeholders:
     hover-text: "<yellow>Перейти на наш сайт!"
     click-action: "OPEN_URL"
     click-value: "https://mc.flyawaymaking.ru/"
+    description: "Ссылка на официальный сайт сервера"
 
   # Магазин сервера
   shop:
@@ -94,6 +144,7 @@ custom-placeholders:
     hover-text: "<yellow>Перейти в наш магазин"
     click-action: "OPEN_URL"
     click-value: "https://mc.flyawaymaking.ru/shop/"
+    description: "Ссылка на магазин донатов и привилегий сервера"
 
   # Группа в ВК
   vk:
@@ -101,3 +152,4 @@ custom-placeholders:
     hover-text: "<yellow>Перейти в нашу группу ВК"
     click-action: "OPEN_URL"
     click-value: "https://vk.com/flyawaymaking/"
+    description: "Ссылка на официальную группу сервера ВКонтакте"

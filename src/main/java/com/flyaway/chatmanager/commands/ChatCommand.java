@@ -14,16 +14,19 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class ChatCommand implements CommandExecutor, TabCompleter {
 
     private final ChatManagerPlugin plugin;
     private final ConfigManager configManager;
+    private final MessageManager messageManager;
 
     public ChatCommand(ChatManagerPlugin plugin) {
         this.plugin = plugin;
         this.configManager = plugin.getConfigManager();
+        this.messageManager = plugin.getMessageManager();
     }
 
     @Override
@@ -36,6 +39,9 @@ public class ChatCommand implements CommandExecutor, TabCompleter {
         switch (args[0].toLowerCase()) {
             case "reload":
                 reloadCommand(sender);
+                break;
+            case "placeholders":
+                placeholdersCommand(sender);
                 break;
             case "help":
                 sendHelp(sender);
@@ -52,11 +58,11 @@ public class ChatCommand implements CommandExecutor, TabCompleter {
                     PlaceholderProcessor.ClickType type = PlaceholderProcessor.ClickType.valueOf(args[2].toUpperCase());
                     plugin.getPlaceholderProcessor().openInventoryGUI(player, targetUUID, type);
                 } catch (IllegalArgumentException e) {
-                    MessageManager.sendUnknownCommand(sender);
+                    messageManager.sendUnknownCommand(sender);
                 }
                 return true;
             default:
-                MessageManager.sendUnknownCommand(sender);
+                messageManager.sendUnknownCommand(sender);
                 break;
         }
 
@@ -65,49 +71,73 @@ public class ChatCommand implements CommandExecutor, TabCompleter {
 
     private void reloadCommand(CommandSender sender) {
         if (!sender.hasPermission("chatmanager.reload")) {
-            MessageManager.sendNoPermission(sender);
+            messageManager.sendNoPermission(sender);
             return;
         }
 
         try {
             configManager.reloadConfig();
-            MessageManager.sendReloadSuccess(sender);
+            messageManager.sendReloadSuccess(sender);
         } catch (Exception e) {
-            MessageManager.sendReloadError(sender, e.getMessage());
+            messageManager.sendReloadError(sender, e.getMessage());
             plugin.getLogger().severe("Ошибка при перезагрузке конфигурации: " + e.getMessage());
         }
     }
 
-    private void infoCommand(CommandSender sender) {
-        String info = """
-                <gradient:gold:yellow>ChatManager v%s</gradient>
-                <gray>Автор: <white>%s</white>
-                <gray>Версия API: <white>%s</white>
-                <gray>Радиус локального чата: <white>%d блоков</white>
-                <gray>Формат сообщения: <white>%s</white>"""
-                .formatted(
-                        plugin.getPluginMeta().getVersion(),
-                        String.join(", ", plugin.getPluginMeta().getAuthors()),
-                        plugin.getPluginMeta().getAPIVersion(),
-                        configManager.getLocalChatRadius(),
-                        configManager.getMessageFormat()
-                );
+    private void placeholdersCommand(CommandSender sender) {
+        var placeholders = configManager.getPlaceholderConfigs();
 
-        MessageManager.sendMessage(sender, info);
+        if (placeholders.isEmpty()) {
+            messageManager.sendMessage(sender, configManager.getMessage("placeholders-empty"));
+            return;
+        }
+
+        // Строим одно итоговое сообщение
+        StringBuilder builder = new StringBuilder();
+
+        // Заголовок
+        builder.append(configManager.getMessage("placeholders-header")).append("\n");
+
+        ConfigManager.PlaceholderConfig commandConfig = configManager.getCommandConfig();
+        if (commandConfig != null) {
+            String line = configManager.getMessage("placeholder-line").replace("{key}", "/command").replace("{description}", commandConfig.getDescription());
+            builder.append(line).append("\n");
+        }
+
+        // Линии с плейсхолдерами
+        for (Map.Entry<String, ConfigManager.PlaceholderConfig> entry : placeholders.entrySet()) {
+
+            String key = entry.getKey();
+            ConfigManager.PlaceholderConfig ph = entry.getValue();
+
+            String line = configManager.getMessage("placeholder-line").replace("{key}", key).replace("{description}", ph.getDescription());
+            builder.append(line).append("\n");
+        }
+
+        // Отправляем одно сообщение
+        messageManager.sendMessage(sender, builder.toString());
+    }
+
+    private void infoCommand(CommandSender sender) {
+        String apiVersion = plugin.getPluginMeta().getAPIVersion();
+        if (apiVersion == null) {
+            apiVersion = "unknown";
+        }
+
+        String info = configManager.getMessage("info")
+                .replace("{version}", plugin.getPluginMeta().getVersion())
+                .replace("{authors}", String.join(", ", plugin.getPluginMeta().getAuthors()))
+                .replace("{api}", apiVersion)
+                .replace("{radius}", String.valueOf(configManager.getLocalChatRadius()))
+                .replace("{format}", configManager.getMessageFormat());
+
+        messageManager.sendMessage(sender, info);
     }
 
     private void sendHelp(CommandSender sender) {
-        String help = """
-                <gradient:gold:yellow>ChatManager - Помощь по командам</gradient>
-                <gray>/chatmanager help</gray> - <white>Показать это сообщение</white>
-                <gray>/chatmanager reload</gray> - <white>Перезагрузить конфигурацию</white>
-                <gray>/chatmanager info</gray> - <white>Информация о плагине</white>
-                
-                <gray>Использование чата:</gray>
-                <gray>- Обычное сообщение</gray> - <white>локальный чат</white>
-                <gray>- !сообщение</gray> - <white>глобальный чат</white>""";
+        String help = configManager.getMessage("help");
 
-        MessageManager.sendMessage(sender, help);
+        messageManager.sendMessage(sender, help);
     }
 
     @Override
@@ -116,6 +146,7 @@ public class ChatCommand implements CommandExecutor, TabCompleter {
 
         if (args.length == 1) {
             completions.add("help");
+            completions.add("placeholders");
             completions.add("reload");
             completions.add("info");
 

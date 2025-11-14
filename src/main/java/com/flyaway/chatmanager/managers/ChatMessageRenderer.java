@@ -9,6 +9,7 @@ import net.luckperms.api.LuckPermsProvider;
 import net.luckperms.api.event.EventSubscription;
 import net.luckperms.api.event.user.UserDataRecalculateEvent;
 import net.luckperms.api.cacheddata.CachedMetaData;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.PluginManager;
 import org.jetbrains.annotations.NotNull;
@@ -25,6 +26,7 @@ public class ChatMessageRenderer {
     private final boolean hasPapi;
     private final boolean hasLuckPerms;
     private final PlaceholderProcessor placeholderProcessor;
+    private final MessageManager messageManager;
     private final Map<UUID, CachedMetaData> metaCache = new ConcurrentHashMap<>();
     private EventSubscription<UserDataRecalculateEvent> subscription;
     private LuckPerms luckPerms;
@@ -34,6 +36,7 @@ public class ChatMessageRenderer {
     public ChatMessageRenderer(ChatManagerPlugin plugin) {
         this.configManager = plugin.getConfigManager();
         this.placeholderProcessor = plugin.getPlaceholderProcessor();
+        this.messageManager = plugin.getMessageManager();
 
         PluginManager pm = plugin.getServer().getPluginManager();
         this.hasPapi = pm.getPlugin("PlaceholderAPI") != null;
@@ -80,6 +83,25 @@ public class ChatMessageRenderer {
     }
 
     /**
+     * Форматирование сообщений от команд.
+     * - заменяет legacy-цвета (&a) → <green>
+     * - обрабатывает PlaceholderAPI (если есть)
+     * - применяет кастомные плейсхолдеры (processAllPlaceholders)
+     */
+    public @NotNull Component renderMessage(CommandSender sender, String message) {
+        String result = message;
+        for (Map.Entry<String, String> e : legacyColors.entrySet()) {
+            result = result.replace(e.getKey(), e.getValue());
+        }
+
+        if (hasPapi) {
+            result = PlaceholderAPI.setPlaceholders(null, result);
+        }
+
+        return placeholderProcessor.processAllPlaceholders(sender, messageManager.formatMessage(result));
+    }
+
+    /**
      * Основной метод форматирования сообщений.
      *
      * @param player   Игрок, который отправил сообщение
@@ -87,7 +109,7 @@ public class ChatMessageRenderer {
      * @param isGlobal true, если сообщение глобальное
      * @return Готовый Component для отправки
      */
-    public @NotNull Component renderMessage(Player player, String message, boolean isGlobal) {
+    public @NotNull Component renderPlayerMessage(Player player, String message, boolean isGlobal) {
         String messageFormat = configManager.getMessageFormat();
         String scopeFormat = isGlobal
                 ? configManager.getGlobalFormat()
@@ -131,7 +153,7 @@ public class ChatMessageRenderer {
         }
 
         // Десериализация в Component
-        Component component = MessageManager.formatMessage(format);
+        Component component = messageManager.formatMessage(format);
 
         // Обрабатываем все специальные заполнители и команды
         component = placeholderProcessor.processAllPlaceholders(player, component);

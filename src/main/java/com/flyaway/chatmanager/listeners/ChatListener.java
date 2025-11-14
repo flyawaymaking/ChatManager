@@ -4,7 +4,6 @@ import com.flyaway.chatmanager.ChatManagerPlugin;
 import com.flyaway.chatmanager.managers.ConfigManager;
 import com.flyaway.chatmanager.managers.MessageManager;
 import com.flyaway.chatmanager.managers.ChatMessageRenderer;
-import com.flyaway.chatmanager.managers.PlaceholderProcessor;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -19,12 +18,12 @@ public class ChatListener implements Listener {
 
     private final ConfigManager configManager;
     private final ChatMessageRenderer renderer;
-    private final PlaceholderProcessor placeholderProcessor;
+    private final MessageManager messageManager;
 
     public ChatListener(ChatManagerPlugin plugin) {
         this.configManager = plugin.getConfigManager();
         this.renderer = plugin.getChatMessageRenderer();
-        this.placeholderProcessor = plugin.getPlaceholderProcessor();
+        this.messageManager = plugin.getMessageManager();
     }
 
     @EventHandler
@@ -38,14 +37,14 @@ public class ChatListener implements Listener {
         String messageText = isGlobal ? plainMessage.substring(1).trim() : plainMessage.trim();
 
         // Форматируем сообщение
-        Component formatted = renderer.renderMessage(player, messageText, isGlobal);
+        Component formatted = renderer.renderPlayerMessage(player, messageText, isGlobal);
 
         // Используем MessageManager для отправки
         if (isGlobal) {
-            MessageManager.broadcastMessage(formatted);
+            messageManager.broadcastMessage(formatted);
         } else {
             int radius = configManager.getLocalChatRadius();
-            MessageManager.sendMessageToPlayersInRadius(player, formatted, radius);
+            messageManager.sendMessageToPlayersInRadius(player, formatted, radius);
         }
     }
 
@@ -97,29 +96,33 @@ public class ChatListener implements Listener {
     private void handleMessageCommand(CommandSender sender, String targetName, String text, String commandUsed) {
         Player target = Bukkit.getPlayerExact(targetName);
         if (target == null) {
-            sender.sendMessage(MessageManager.formatMessage("<red>Игрок не найден"));
+            sender.sendMessage(messageManager.formatMessage("<red>Игрок не найден"));
             return;
         }
+
         if (sender instanceof Player player) {
             text = renderer.applyColorPermissions(player, text);
         }
 
-        Component formattedText = placeholderProcessor.processAllPlaceholders(sender, MessageManager.formatMessage(text));
+        Component formattedText = renderer.renderMessage(sender, text);
 
         String senderName = sender.getName();
         String miniMessageString = "<gold>[от <red>" + senderName + "<gold>]<reset> ";
         if (sender instanceof Player) {
-            sender.sendMessage(MessageManager.formatMessage("<gold>[<red>я <gold>-> <red>" + target.getName() + "<gold>]<reset> ").append(formattedText));
+            sender.sendMessage(messageManager.formatMessage("<gold>[<red>я <gold>-> <red>" + target.getName() + "<gold>]<reset> ").append(formattedText));
             miniMessageString = "<gold>[<hover:show_text:'<yellow>Нажмите чтобы ответить'>" +
                     "<click:suggest_command:'" + commandUsed + " " + senderName + " '>" +
                     "<gold>от <red>" + senderName + "</click></hover><gold>]<reset> ";
         }
 
-        target.sendMessage(MessageManager.formatMessage(miniMessageString).append(formattedText));
+        target.sendMessage(messageManager.formatMessage(miniMessageString).append(formattedText));
     }
 
     private void handleBroadcast(CommandSender sender, String text) {
-        Component formattedText = placeholderProcessor.processAllPlaceholders(sender, MessageManager.formatMessage(text));
-        MessageManager.broadcastMessage(formattedText);
+        if (sender instanceof Player player) {
+            text = renderer.applyColorPermissions(player, text);
+        }
+        Component formattedText = renderer.renderMessage(sender, text);
+        messageManager.broadcastMessage(formattedText);
     }
 }

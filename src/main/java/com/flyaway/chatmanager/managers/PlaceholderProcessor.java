@@ -17,7 +17,6 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.regex.Pattern;
@@ -26,12 +25,16 @@ public class PlaceholderProcessor {
 
     private final ChatManagerPlugin plugin;
     private final ConfigManager configManager;
+    private final MessageManager messageManager;
+    private final PlayerTracker playerTracker;
     private final boolean hasPapi;
     private final Map<UUID, Map<ClickType, TimedInventory>> tempInventories = new HashMap<>();
 
     public PlaceholderProcessor(ChatManagerPlugin plugin) {
         this.plugin = plugin;
         this.configManager = plugin.getConfigManager();
+        this.messageManager = plugin.getMessageManager();
+        this.playerTracker = plugin.getPlayerTracker();
         this.hasPapi = plugin.getServer().getPluginManager().getPlugin("PlaceholderAPI") != null;
     }
 
@@ -42,18 +45,40 @@ public class PlaceholderProcessor {
         Map<String, ConfigManager.PlaceholderConfig> placeholders = configManager.getPlaceholderConfigs();
         String plainText = PlainTextComponentSerializer.plainText().serialize(component);
 
+        component = processCommandPlaceholders(sender, component, plainText);
+        component = processPlayerHoverText(sender, component, plainText);
+
         for (Map.Entry<String, ConfigManager.PlaceholderConfig> entry : placeholders.entrySet()) {
             String placeholderKey = entry.getKey();
             ConfigManager.PlaceholderConfig config = entry.getValue();
 
-            if ("{command}".equals(placeholderKey)) {
-                component = processCommandPlaceholders(sender, component, plainText, config);
-            } else {
-                String placeholder = "[" + placeholderKey + "]";
-                if (plainText.contains(placeholder)) {
-                    component = replaceCustomPlaceholder(component, placeholder, sender, config);
-                }
+            String placeholder = "[" + placeholderKey + "]";
+            if (plainText.contains(placeholder)) {
+                component = replaceCustomPlaceholder(component, placeholder, sender, config);
             }
+        }
+
+        return component;
+    }
+
+    /**
+     * Обрабатывает ники игроков
+     */
+    private Component processPlayerHoverText(CommandSender sender, Component component, String plainText) {
+        String hoverText = configManager.getPlayerHoverText();
+        if (hoverText == null) return component;
+
+        for (String name : playerTracker.getPlayerNames()) {
+            Player player = Bukkit.getPlayerExact(name);
+            if (player == null) continue;
+
+            Component hover = messageManager.formatMessage(processPlaceholderText(hoverText, sender, ""));
+
+            component = component.replaceText(b -> b
+                    .matchLiteral(name)
+                    .replacement(Component.text(name).hoverEvent(HoverEvent.showText(hover))
+                    )
+            );
         }
 
         return component;
@@ -62,8 +87,10 @@ public class PlaceholderProcessor {
     /**
      * Обрабатывает команды в формате [/command]
      */
-    private Component processCommandPlaceholders(CommandSender sender, Component component, String plainText,
-                                                 ConfigManager.PlaceholderConfig config) {
+    private Component processCommandPlaceholders(CommandSender sender, Component component, String plainText) {
+        ConfigManager.PlaceholderConfig config = configManager.getCommandConfig();
+        if (config == null) return component;
+
         Pattern commandPattern = Pattern.compile("\\[(/[^]]+)]");
         java.util.regex.Matcher matcher = commandPattern.matcher(plainText);
 
@@ -112,12 +139,12 @@ public class PlaceholderProcessor {
         String inventoryTitle = processPlaceholderText(config.getInventoryTitle(), sender, value);
 
         // Создаем базовый компонент
-        Component component = MessageManager.formatMessage(displayText);
+        Component component = messageManager.formatMessage(displayText);
 
         // Добавляем hover событие
         if (!hoverText.isEmpty()) {
             component = component.hoverEvent(
-                    HoverEvent.showText(MessageManager.formatMessage(hoverText))
+                    HoverEvent.showText(messageManager.formatMessage(hoverText))
             );
         }
 
@@ -179,8 +206,8 @@ public class PlaceholderProcessor {
 
         // Преобразуем название в Component через MessageManager
         Component titleComponent = (inventoryTitle == null || inventoryTitle.isEmpty())
-                ? MessageManager.formatMessage("Инвентарь " + player.getName())
-                : MessageManager.formatMessage(inventoryTitle);
+                ? messageManager.formatMessage("Инвентарь " + player.getName())
+                : messageManager.formatMessage(inventoryTitle);
 
         // Создаём инвентарь с Component заголовком (Paper 1.19+)
         inv = Bukkit.createInventory(new ViewOnlyHolder(), size, titleComponent);
@@ -204,7 +231,7 @@ public class PlaceholderProcessor {
                 // === Подготовка заливки стеклом ===
                 ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
                 ItemMeta meta = filler.getItemMeta();
-                if (meta != null) meta.displayName(MessageManager.formatMessage("<gray>"));
+                if (meta != null) meta.displayName(messageManager.formatMessage("<gray>"));
                 filler.setItemMeta(meta);
 
                 // === Ряд 1: голова + опыт + броня + офф-рука ===
@@ -216,7 +243,7 @@ public class PlaceholderProcessor {
                 SkullMeta skullMeta = (SkullMeta) skull.getItemMeta();
                 if (skullMeta != null) {
                     skullMeta.setOwningPlayer(player);
-                    skullMeta.displayName(MessageManager.formatMessage("<yellow>" + player.getName()));
+                    skullMeta.displayName(messageManager.formatMessage("<yellow>" + player.getName()));
                     skull.setItemMeta(skullMeta);
                 }
                 inv.setItem(0, skull);
@@ -225,7 +252,7 @@ public class PlaceholderProcessor {
                 ItemStack exp = new ItemStack(Material.EXPERIENCE_BOTTLE);
                 ItemMeta expMeta = exp.getItemMeta();
                 if (expMeta != null) {
-                    expMeta.displayName(MessageManager.formatMessage("<yellow>Уровень: " + player.getLevel()));
+                    expMeta.displayName(messageManager.formatMessage("<yellow>Уровень: " + player.getLevel()));
                     exp.setItemMeta(expMeta);
                 }
                 inv.setItem(1, exp);
@@ -372,13 +399,13 @@ public class PlaceholderProcessor {
     public void openInventoryGUI(Player viewer, UUID targetUUID, ClickType type) {
         Map<ClickType, TimedInventory> invMap = tempInventories.get(targetUUID);
         if (invMap == null) {
-            viewer.sendMessage(MessageManager.formatMessage("<red>Этот просмотр инвентаря истёк."));
+            viewer.sendMessage(messageManager.formatMessage("<red>Этот просмотр инвентаря истёк."));
             return;
         }
 
         TimedInventory timedInv = invMap.get(type);
         if (timedInv == null) {
-            viewer.sendMessage(MessageManager.formatMessage("<red>Этот просмотр инвентаря истёк."));
+            viewer.sendMessage(messageManager.formatMessage("<red>Этот просмотр инвентаря истёк."));
             return;
         }
 
@@ -427,7 +454,7 @@ public class PlaceholderProcessor {
 
     public void cleanupExpiredInventories() {
         long now = System.currentTimeMillis();
-        long expiryMillis = 2 * 60 * 1000; // 2 минуты
+        long expiryMillis = configManager.getInvExpiredMinutes() * 60 * 1000;
 
         tempInventories.forEach((uuid, invMap) -> {
             invMap.entrySet().removeIf(entry -> now - entry.getValue().getTimestamp() > expiryMillis);

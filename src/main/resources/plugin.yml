@@ -45,3 +45,6 @@ permissions:
   chatmanager.reload:
     description: Перезагрузите конфигурацию плагина
     default: op
+  chatmanager.local.listen:
+    description: Получать сообщения из локальных чатов
+    default: op

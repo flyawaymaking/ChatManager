@@ -1,21 +1,19 @@
 package com.flyaway.chatmanager.managers;
 
 import com.flyaway.chatmanager.ChatManagerPlugin;
-import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.translation.GlobalTranslator;
-import net.kyori.adventure.translation.TranslationStore;
+import org.jetbrains.annotations.NotNull;
 
-import java.text.MessageFormat;
 import java.util.Locale;
+import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
 public class LanguageManager {
 
     private final ChatManagerPlugin plugin;
-    public static final Locale RU = Locale.forLanguageTag("ru-RU");
-    private TranslationStore store;
+    private ResourceBundle bundle;
 
     public LanguageManager(ChatManagerPlugin plugin) {
         this.plugin = plugin;
@@ -23,11 +21,8 @@ public class LanguageManager {
 
     public void load() {
         try {
-            // Создаем TranslationStore
-            this.store = TranslationStore.messageFormat(Key.key("chatmanager", "translations"));
-
-            // Загружаем переводы
-            loadFromResourceBundle();
+            // Попытка загрузить файл перевода для русской локали
+            bundle = ResourceBundle.getBundle("lang.ru_ru");
 
             plugin.getLogger().info("Загружен русский перевод");
 
@@ -36,27 +31,19 @@ public class LanguageManager {
         }
     }
 
-    private void loadFromResourceBundle() {
-        try {
-            ResourceBundle bundle = ResourceBundle.getBundle("lang.ru_ru", RU);
-
-            for (String key : bundle.keySet()) {
-                String pattern = bundle.getString(key);
-                store.register(key, RU, new MessageFormat(pattern, RU));
+    public Component translate(@NotNull TranslatableComponent key, @NotNull Locale locale) {
+        if (locale.toString().toLowerCase().contains("ru") && bundle != null) {
+            // Получаем перевод по ключу
+            try {
+                String result = bundle.getString(key.key());
+                return Component.text(result);
+            } catch (MissingResourceException e) {
+                // Если ключ не найден, возвращаем исходный ключ
+                plugin.getLogger().warning("Не найден перевод для ключа: " + key.key());
             }
-
-        } catch (Exception e) {
-            plugin.getLogger().warning("Не удалось загрузить ResourceBundle: " + e.getMessage());
         }
-    }
 
-    public Component translate(TranslatableComponent key, Locale locale) {
-        return store.translate(key, locale);
-    }
-
-    public void unload() {
-        if (store != null) {
-            GlobalTranslator.translator().removeSource(store);
-        }
+        // Если не найден перевод для русской локали, используем fallback
+        return GlobalTranslator.render(key, locale);
     }
 }

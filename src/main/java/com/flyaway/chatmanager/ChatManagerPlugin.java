@@ -61,7 +61,6 @@ public class ChatManagerPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        languageManager.unload();
         // Отмена подписки LuckPerms
         if (chatMessageRenderer != null) {
             EventSubscription<UserDataRecalculateEvent> sub = chatMessageRenderer.getSubscription();

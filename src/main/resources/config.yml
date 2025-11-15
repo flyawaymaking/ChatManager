@@ -25,7 +25,7 @@ formats:
 # Подставлять команды, отправленные через [/command]
 commands:
   enabled: true
-  display-text: "<aqua>[<yellow>{command}<aqua>]<reset>"
+  display-text: "<aqua>[<yellow>{command}<aqua>]</aqua>"
   hover-text: "<yellow>Нажмите, чтобы использовать команду!"
   click-action: "SUGGEST_COMMAND"
   description: "Преобразует команды в квадратных скобках в кликабельные элементы"
@@ -34,7 +34,7 @@ commands:
 custom-placeholders:
   # Показать инвентарь
   inv:
-    display-text: "<white>[<aqua>Инвентарь <white>%player_name%]<reset>"
+    display-text: "<white>[<aqua>Инвентарь <white>%player_name%]</white>"
     inventory-title: "Инвентарь %player_name%"
     hover-text: "<yellow>Нажмите чтобы посмотреть!"
     click-action: "SHOW_INV"
@@ -42,7 +42,7 @@ custom-placeholders:
 
   # Показать эндер сундук
   ender:
-    display-text: "<white>[<light_purple>Эндер-сундук <white>%player_name%]<reset>"
+    display-text: "<white>[<light_purple>Эндер-сундук <white>%player_name%]</white>"
     inventory-title: "Эндер сундук %player_name%"
     hover-text: "<yellow>Нажмите чтобы посмотреть!"
     click-action: "SHOW_ENDER"
@@ -50,7 +50,7 @@ custom-placeholders:
 
   # Показать предмет из руки
   item:
-    display-text: "<white>[{item}]<reset>"
+    display-text: "<white>[{item}<white>]</white>"
     inventory-title: "Предмет %player_name%"
     hover-text: "<yellow>Нажмите чтобы посмотреть!"
     click-action: "SHOW_ITEM"
@@ -58,7 +58,7 @@ custom-placeholders:
 
   # Показать баланс денег
   money:
-    display-text: "<white>[<green>Монеты <white>%player_name%]<reset>"
+    display-text: "<white>[<green>Монеты <white>%player_name%]</white>"
     hover-text: "<green>Монеты %player_name%: %coinsengine_balance_short_clean_money%"
     click-action: "SUGGEST_COMMAND"
     click-value: "/money pay %player_name% "
@@ -66,7 +66,7 @@ custom-placeholders:
 
   # Показать баланс коинов
   coins:
-    display-text: "<white>[<gold>Коины <white>%player_name%]<reset>"
+    display-text: "<white>[<gold>Коины <white>%player_name%]</white>"
     hover-text: "<gold>Коины %player_name%: %coinsengine_balance_short_clean_coins%"
     click-action: "SUGGEST_COMMAND"
     click-value: "/coins pay %player_name% "
@@ -74,7 +74,7 @@ custom-placeholders:
 
   # Предметы на аукционе игрока
   ah:
-    display-text: "<white>[<yellow>Товары на аукционе <white>%player_name%]<reset>"
+    display-text: "<white>[<yellow>Товары на аукционе <white>%player_name%]</white>"
     hover-text: "<yellow>Товары на аукционе %player_name%"
     click-action: "RUN_COMMAND"
     click-value: "/ah view %player_name%"
@@ -82,7 +82,7 @@ custom-placeholders:
 
   # Предложить обмен
   trade:
-    display-text: "<white>[<yellow>Предложить обмен <white>%player_name%]<reset>"
+    display-text: "<white>[<yellow>Предложить обмен <white>%player_name%]</white>"
     hover-text: "<yellow>Предложить обменяться вещами с %player_name%"
     click-action: "RUN_COMMAND"
     click-value: "/trade %player_name%"
@@ -90,22 +90,22 @@ custom-placeholders:
 
   # Игровое время
   gametime:
-    display-text: "<aqua>Время в игре: %player_world_time_24%<reset>"
+    display-text: "<aqua>Время в игре: %player_world_time_24%</aqua>"
     description: "Отображает текущее игровое время в 24-часовом формате"
 
   # Позиция игрока
   pos:
-    display-text: "<aqua>Моя позиция: <white>%player_world% <yellow>X:<white>%player_x% <yellow>Y:<white>%player_y% <yellow>Z:<white>%player_z%<reset>"
+    display-text: "<aqua>Моя позиция: <white>%player_world% <yellow>X:<white>%player_x% <yellow>Y:<white>%player_y% <yellow>Z:<white>%player_z%</white>"
     description: "Показывает текущие координаты и мир игрока"
 
   # Пинг игрока
   ping:
-    display-text: "<aqua>Мой пинг: <green>%player_ping% <gray>мс<reset>"
+    display-text: "<aqua>Мой пинг: <green>%player_ping% <gray>мс</gray>"
     description: "Отображает текущий пинг игрока в миллисекундах"
 
   # Сайт сервера
   site:
-    display-text: "<white>[<bold>Сайт: </bold><gradient:#ffb618:#ff4e18>FlyAwayMaking</gradient>]<reset>"
+    display-text: "<white>[<bold>Сайт: </bold><gradient:#ffb618:#ff4e18>FlyAwayMaking</gradient>]</white>"
     hover-text: "<yellow>Перейти на наш сайт!"
     click-action: "OPEN_URL"
     click-value: "https://mc.flyawaymaking.ru/"
@@ -113,7 +113,7 @@ custom-placeholders:
 
   # Магазин сервера
   shop:
-    display-text: "<white>[<bold>Магазин: </bold><gradient:#ffb618:#ff4e18>FlyAwayMaking</gradient>]<reset>"
+    display-text: "<white>[<bold>Магазин: </bold><gradient:#ffb618:#ff4e18>FlyAwayMaking</gradient>]</white>"
     hover-text: "<yellow>Перейти в наш магазин"
     click-action: "OPEN_URL"
     click-value: "https://mc.flyawaymaking.ru/shop/"
@@ -121,7 +121,7 @@ custom-placeholders:
 
   # Группа в ВК
   vk:
-    display-text: "<white>[<bold>ВК: </bold><gradient:#ffb618:#ff4e18>FlyAwayMaking</gradient>]<reset>"
+    display-text: "<white>[<bold>ВК: </bold><gradient:#ffb618:#ff4e18>FlyAwayMaking</gradient>]</white>"
     hover-text: "<yellow>Перейти в нашу группу ВК"
     click-action: "OPEN_URL"
     click-value: "https://vk.com/flyawaymaking/"

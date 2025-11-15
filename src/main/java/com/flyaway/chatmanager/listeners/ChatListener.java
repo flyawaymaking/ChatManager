@@ -88,7 +88,7 @@ public class ChatListener implements Listener {
                 "<click:suggest_command:'" + commandUsed + " " + target.getName() + " '>" +
                 messageForTarget + "</click></hover>";
 
-        messageManager.sendMessage(sender, messageManager.formatMessage(messageForTarget + "<reset> ").append(formattedText));
+        messageManager.sendMessage(target, messageManager.formatMessage(messageForTarget + "<reset> ").append(formattedText));
     }
 
     private void handleBroadcast(Player sender, String text) {

@@ -1,5 +1,5 @@
 name: ChatManager
-version: 1.0.2
+version: 1.0.3
 main: com.flyaway.chatmanager.ChatManagerPlugin
 api-version: "1.21"
 author: FlyAwayMaking

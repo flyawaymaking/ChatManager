@@ -82,10 +82,8 @@ public class ChatCommand implements CommandExecutor, TabCompleter {
         if (sender instanceof Player player) {
             if (!(player.hasPermission("chatmanager.bc"))) return;
             text = renderer.applyColorPermissions(player, text);
-            messageManager.broadcastMessage(renderer.renderMessage(player, "<gold>" + player.getName() + "» <white>" + text));
-        } else {
-            messageManager.broadcastMessage(renderer.renderMessage(sender, "<gold>» <white>" + text));
         }
+        messageManager.broadcastMessage(renderer.renderMessage(sender, "<gold>» <white>" + text));
     }
 
     private void sendCommand(CommandSender sender, String[] args) {

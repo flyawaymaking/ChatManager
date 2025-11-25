@@ -85,7 +85,7 @@ public class ChatListener implements Listener {
         String hoverText = configManager.getMessage("reply-hover-text");
         String messageForTarget = configManager.getMessage("from-player").replace("<reset>", "").replace("{sender}", sender.getName());
         messageForTarget = "<hover:show_text:'" + hoverText + "'>" +
-                "<click:suggest_command:'" + commandUsed + " " + target.getName() + " '>" +
+                "<click:suggest_command:'" + commandUsed + " " + sender.getName() + " '>" +
                 messageForTarget + "</click></hover>";
 
         messageManager.sendMessage(target, messageManager.formatMessage(messageForTarget + "<reset> ").append(formattedText));

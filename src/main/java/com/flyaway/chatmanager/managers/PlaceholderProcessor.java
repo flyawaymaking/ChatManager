@@ -402,7 +402,7 @@ public class PlaceholderProcessor {
             displayName = meta.displayName();
         } else {
             // Используем переведённое имя предмета
-            displayName = languageManager.translate(Component.translatable(item.getType().translationKey()), locale);
+            displayName = languageManager.translate(item.getType());
         }
 
         return displayName;

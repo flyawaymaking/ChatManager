@@ -33,7 +33,6 @@ public class ChatManagerPlugin extends JavaPlugin {
         // Загрузка конфигурации
         configManager.loadConfig();
         this.languageManager = new LanguageManager(this);
-        languageManager.load();
         this.playerTracker = new PlayerTracker();
         playerTracker.load();
         this.messageManager = new MessageManager(this);

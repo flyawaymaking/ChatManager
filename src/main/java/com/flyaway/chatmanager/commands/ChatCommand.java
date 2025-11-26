@@ -108,6 +108,7 @@ public class ChatCommand implements CommandExecutor, TabCompleter {
 
         try {
             configManager.reloadConfig();
+            plugin.getLanguageManager().load();
             messageManager.sendReloadSuccess(sender);
         } catch (Exception e) {
             messageManager.sendReloadError(sender, e.getMessage());

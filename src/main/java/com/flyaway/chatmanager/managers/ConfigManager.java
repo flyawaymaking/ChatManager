@@ -110,6 +110,10 @@ public class ConfigManager {
         return commandConfig;
     }
 
+    public String getLanguage() {
+        return config.getString("language", "ru_RU");
+    }
+
     public FileConfiguration getConfig() {
         return config;
     }

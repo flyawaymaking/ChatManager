@@ -3,7 +3,7 @@ plugins {
 }
 
 group = 'com.flyaway.chatmanager'
-version = '1.1.0'
+version = '1.2.0'
 
 java {
     toolchain {
@@ -26,9 +26,9 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT'
-    compileOnly 'net.luckperms:api:5.4'
-    compileOnly 'me.clip:placeholderapi:2.11.6'
+    compileOnly 'io.papermc.paper:paper-api:1.21.10-R0.1-SNAPSHOT'
+    compileOnly 'net.luckperms:api:5.5'
+    compileOnly 'me.clip:placeholderapi:2.11.7'
 }
 
 tasks.jar {

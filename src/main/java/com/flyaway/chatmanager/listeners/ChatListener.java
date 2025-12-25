@@ -9,6 +9,7 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
@@ -24,8 +25,9 @@ public class ChatListener implements Listener {
         this.messageManager = plugin.getMessageManager();
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onChat(AsyncChatEvent event) {
+        if (event.isCancelled()) return;
         event.setCancelled(true);
 
         Player player = event.getPlayer();
@@ -46,8 +48,9 @@ public class ChatListener implements Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event) {
+        if (event.isCancelled()) return;
         String message = event.getMessage(); // полный ввод, например "/msg target hello"
         String lower = message.toLowerCase();
 

@@ -49,7 +49,6 @@ public class ChatMessageRenderer {
             });
         }
 
-        // Инициализация legacy цветов (остается без изменений)
         initializeLegacyColors();
     }
 
@@ -119,10 +118,8 @@ public class ChatMessageRenderer {
                 ? configManager.getGlobalFormat()
                 : configManager.getLocalFormat();
 
-        // Подставляем в message-format текст конкретного сообщения
         String formattedMessage = applyColorPermissions(player, message);
 
-        // Получаем LuckPerms данные (если есть)
         String prefix = "";
         String suffix = "";
         String usernameColor = "";
@@ -139,7 +136,6 @@ public class ChatMessageRenderer {
             usernameColor = Objects.requireNonNullElse(meta.getMetaValue("username-color"), "");
         }
 
-        // Подготавливаем формат с заменами
         String format = messageFormat
                 .replace("{prefix}", prefix)
                 .replace("{suffix}", suffix)
@@ -148,18 +144,14 @@ public class ChatMessageRenderer {
                 .replace("{name}", player.getName())
                 .replace("{message}", formattedMessage);
 
-        // Добавляем значок локального/глобального чата
         format = scopeFormat.replace("{message}", format);
 
-        // Обрабатываем PlaceholderAPI, если есть
         if (hasPapi) {
             format = PlaceholderAPI.setPlaceholders(player, format);
         }
 
-        // Десериализация в Component
         Component component = messageManager.formatMessage(format);
 
-        // Обрабатываем все специальные заполнители и команды
         component = placeholderProcessor.processAllPlaceholders(player, component);
         return component;
     }
@@ -171,7 +163,6 @@ public class ChatMessageRenderer {
     public String applyColorPermissions(Player player, String message) {
         String result = message;
 
-        // Игрок имеет полные права
         if (player.hasPermission("chatmanager.color.*") || player.hasPermission("chatmanager.format.*")) {
             for (Map.Entry<String, String> e : legacyColors.entrySet()) {
                 result = result.replace(e.getKey(), e.getValue());
@@ -179,25 +170,14 @@ public class ChatMessageRenderer {
             return result;
         }
 
-        // MiniMessage теги
         if (!player.hasPermission("chatmanager.color.advanced")) {
             result = result.replaceAll("<[^>]+>", "");
         }
 
-        // Legacy цвета (&0–&f)
-        if (player.hasPermission("chatmanager.color.basic")) {
-            for (Map.Entry<String, String> e : legacyColors.entrySet()) {
-                if (e.getKey().matches("&[0-9a-f]")) {
-                    result = result.replace(e.getKey(), e.getValue());
-                } else {
-                    result = result.replace(e.getKey(), "");
-                }
-            }
-        } else {
+        if (!player.hasPermission("chatmanager.color.basic")) {
             result = result.replaceAll("&[0-9a-f]", "");
         }
 
-        // Форматирование
         if (!player.hasPermission("chatmanager.format.italic")) {
             result = result.replace("&o", "");
         }
@@ -206,6 +186,10 @@ public class ChatMessageRenderer {
         }
         if (!player.hasPermission("chatmanager.format.*")) {
             result = result.replaceAll("&[mnkr]", ""); // зачеркнутый, подчёркнутый, обфускация, reset
+        }
+
+        for (Map.Entry<String, String> e : legacyColors.entrySet()) {
+            result = result.replace(e.getKey(), e.getValue());
         }
 
         return result;
